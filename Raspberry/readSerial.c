@@ -1,8 +1,8 @@
-/************************/
-/*    COUTAUD Ulysse    */
-/*    2022              */
-/*    TODO GPL          */
-/************************/
+/******************/
+/* COUTAUD Ulysse */
+/* L3P AII LYON1  */
+/* 2022		  */
+/******************/
 
 #include <stdio.h>
 #include <stdlib.h>
