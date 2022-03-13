@@ -19,7 +19,7 @@ INCLUDE = ./csapp.h
 OBJS = ./csapp.o
 INCLDIR = -I.
 
-PROGS = readSerial 
+PROGS = SerialServer 
 
 
 

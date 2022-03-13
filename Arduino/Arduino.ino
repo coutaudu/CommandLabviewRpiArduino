@@ -4,96 +4,117 @@
 /* 2022		  */
 /******************/
 
+#include "shared.h"
+#include "arduino.h"
+
+//////////////////////
 // @A0=14
 #define ANALOG_PIN_0 A0
 
+#define DEBUG 1==2
 
 // VARIABLES GLOBALES PERSISTENTES
-int DELAI = 1000;
-
-/****************************************************/
-// FONCTIONS
-// Ecrit  le menu d'interface CLI sur la ligne serie.
-void printMenu();
-
-// Lit une commande sur la ligne serie.
-int lectureSerial();
-
-// Execute une commande
-void executeCommande(int cmd);
-
-// Lit tout les entrees analogiques et écrit les valeurs sur la ligne série
-// Format Human readable
-void getAllAnalogPinsHR();
-// Format CSV 
-void getAllAnalogPinsCSV();
-
+int DELAI = 2000;
 
 /****************************************************/
 // Exécuté à la mise sous tension de l'arduino.
 void setup() {
-  Serial.begin(9600);           //  setup serial
+    Serial.begin(115200,SERIAL_8N1);//  setup serial
+    while (!Serial) {
+	; // wait for serial port to connect. Needed for native USB
+    }
+    pinMode(11, OUTPUT);
+	
 }
 
 // Exécuté en boucle à l'infini.
 void loop() {
+    command cmd;
+    Serial.write("LOOP\r\n");
+    blinkPin11();
+    /* if(getCommand(&cmd)==0){ */
+    /* 	if (DEBUG) Serial.write("getCommand OK"); */
+    /* 	executeCommand(cmd); */
+    /* }else{ */
+    /* 	if (DEBUG) Serial.write("getCommand NOT OK"); */
+    /* } */
 
-  int commande=-1;
-      
-  commande = lectureSerial();
-  executeCommande(commande);
-  
-  delay(DELAI);
+    delay(DELAI);
+}
+
+void blinkPin11(){
+    int thisPin=11;
+    for (int brightness = 0; brightness < 255; brightness+=5) {
+	analogWrite(thisPin, brightness);
+	delay(2);
+    }
+    // fade the LED on thisPin from brightest to off:
+    for (int brightness = 255; brightness >= 0; brightness-=5) {
+	analogWrite(thisPin, brightness);
+	delay(2);
+    }
 }
 /****************************************************/
-
-void getAllAnalogPins(){
-    int analogPinAddress;
-    int analogPinIndex;
-    int val[6] ;  // variable to store the value read
-
-    for(analogPinIndex=0;analogPinIndex<=5;analogPinIndex++){
-	analogPinAddress = ANALOG_PIN_0 + analogPinIndex;
-	Serial.println(analogPinIndex);
-	val[analogPinIndex] = analogRead(analogPinAddress);  // read the input pin
-	Serial.println((String)"Pin["+analogPinIndex+"]<"+val[analogPinIndex]+">");
-    }
-    Serial.println((String)"-----------------"); 
+unsigned char getNextUnsignedChar(){
+    int in;
+    int n;
+    if (DEBUG) Serial.write("E");
     
+    while (Serial.available()<=0) {
+	blinkPin11();
+    }
+    in =  Serial.read();
+    delay(5);
+    if (DEBUG) Serial.write("\nin[");
+    if (DEBUG) if ( in<=126 && in>=' ') Serial.write(in);
+    if (DEBUG) Serial.write("]\n");
+    if (DEBUG) Serial.write("F");
+    return (unsigned char)in;
 }
 
-void executeCommande(int cmd){
-    switch (cmd){
-    case '1':
-	getAllAnalogPins();
+int checkCommand(command* cmd){
+    if (cmd->Version!=1) {return -1;}
+    if (cmd->Function>2) {return -2;}
+    return 0;   
+}
+
+int getCommand(command* cmd){
+    if (DEBUG) Serial.write("A");
+    cmd->Version  = getNextUnsignedChar();
+    if (DEBUG) Serial.write("B");
+    cmd->Function = getNextUnsignedChar();
+    if (DEBUG) Serial.write("C");
+    cmd->Argument = getNextUnsignedChar();
+    if (DEBUG) Serial.write("D");
+	
+    return checkCommand(cmd);
+}
+
+int executeCommand(command cmd){
+
+    switch (cmd.Function){
+    case GET_ANALOG:
+	if (DEBUG) Serial.write("F");
+	//	Serial.write((String)"Commande GET<"+cmd.Argument+">");
+	getAnalogPin(cmd.Argument);
+	return 0;
 	break;
-    case -1:
-	return;
-	break;	    
     default:
-	Serial.println((String)"Commande ["+cmd+"] inconnue.");	    
-    }
-}
-    
-void printMenu(){
-    Serial.println       ("/**********************************************************/");
-    Serial.println((String)" Tapez votre commande:");
-    Serial.println((String)"\t[1] Lire valeur analogique.");
-    Serial.println       ("/**********************************************************/");
+	//Serial.write((String)"Commande ["+cmd.Function+"] inconnue.");
+	return -1;
+    }    
 }
 
-int lectureSerial() {
-    int retval = -1;
-    char inChar;
-    while (Serial.available()>0) {
-	inChar = (char)Serial.read();
-	if (inChar<' ' || inChar>'~' || inChar=='?' ) {
-	    printMenu();
-	}
-	if (inChar>=' ' && inChar<='~') {
-	    Serial.println((String)"\tSerial.read["+((char)inChar)+"]");
-	}
-	if (inChar=='1') { retval=inChar;}
-    }
-    return retval;
+int getAnalogPin(unsigned char analogPinIndex){
+    int analogPinAddress;
+    int analogValue;
+
+    //    if (DEBUG) Serial.write();
+    analogPinAddress = ANALOG_PIN_0 + analogPinIndex;
+    analogValue = analogRead(analogPinAddress);
+    //    if (DEBUG) Serial.write((String)"A"+analogPinIndex+", "+analogValue+",");
+    //    if (DEBUG) Serial.write();
+
+    return analogValue;
 }
+
