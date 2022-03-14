@@ -24,17 +24,19 @@ int builtInLedState = LOW;
 void setup() {
     initSerial();
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(11, OUTPUT);
 }
 
 // Exécuté en boucle à l'infini.
 void loop() {
-    
     command cmd;
+
     if(getCommand(&cmd)==0){
 	executeCommand(cmd);
     }else{
 	cmd = getErrorCommand();
 	sendCommand(&cmd);
+	blinkPin11();
     }
     delay(DELAI);
 }
@@ -156,7 +158,7 @@ int sendCommand(command* cmd){
 
 command getErrorCommand(){
     command cmd;
-    cmd.Version  = 0;
+    cmd.Version  = 1;
     cmd.Function = 0;
     cmd.Argument[0] = 0;
     cmd.Argument[1] = 0;

@@ -7,47 +7,73 @@
 #include "SerialServer.h"
 
 int main(){
-    char buf[MAXLINE];
     int fileDescriptorSerialPort1;
     // int fileDescriptorSerialPort2;
-    int n;
-    rio_t riobuf1;
-    //    rio_t riobuf2;
-    command cmd;
+    command request, response;
     int exit;
    
     fileDescriptorSerialPort1 = openSerial(SERIAL_FILE_1);
     //    fileDescriptorSerialPort2 = openSerial(SERIAL_FILE_2);    
     
     if(LOG) printf("\tInitialize Buffurized RIO.\n");
-    Rio_readinitb(&riobuf1, fileDescriptorSerialPort1);
-    //    Rio_readinitb(&riobuf2, fileDescriptorSerialPort2);
     
     if(LOG) printf("\tRead Serial and print to standard ouput until closed.\n");
     
-    exit = CLI(&cmd);
+    exit = getCommandCLI(&request);
     while (!exit) {
-	Rio_writen(fileDescriptorSerialPort1, (void*)&cmd, sizeof(cmd));
-	n = Rio_readnb(&riobuf1, buf, sizeof(cmd));
-	printf("n=%d\n",n);
-	printf("<<%u>>\n",*((short*)buf));
-	exit = CLI(&cmd);
+	sendCommand(&request, fileDescriptorSerialPort1);
+	receiveCommand(&response, fileDescriptorSerialPort1);
+	handleCommand(&request, &response);
+	exit = getCommandCLI(&request);
     };
 
     close(fileDescriptorSerialPort1);
     if(LOG) printf("\tSerial closed by peer.\n");
     return 0;
-  
+}
+
+int handleCommand(command* request, command* response){
+    if (response->Version!=1){
+	printf("\t\t\t[Erreur Version]\n");
+	return -1;
+    }
+    switch (response->Function){
+    case INVALID_CMD:
+	printf("\t\t\t[Erreur Commande Invalide]\n");
+	break;
+    case GET_ANALOG:
+	printf("A%1u[%3u]\n",request->Argument[0], *((short*)(response->Argument)));
+	break;
+    default:
+	printf("\t\t\t[<Erreur Fonction Inconnue]\n");
+    }
+    return 0;
 }
 
 
-int CLI(command* cmd){
+int receiveCommand(command* cmd, int fdSerial){
+    int n;
+    n = rio_readn(fdSerial, cmd, sizeof(command));
+    if (DEBUG) printf("Rcvd %d bytes: ",n);
+    if (DEBUG) printCommand(cmd);
+    return n;
+}
+int sendCommand(command* cmd, int fdSerial){
+    int n;
+    n = rio_writen(fdSerial, cmd, sizeof(command));
+    if (DEBUG) printf("Send %d bytes: ",n);
+    if (DEBUG) printCommand(cmd);
+    return n;
+}
+
+
+int getCommandCLI(command* cmd){
     int exit = FALSE;
     int valide = FALSE;
     char entry;
 
     while(!valide) {
-	printf("\t[0] Exit.\n");
+	printf("\n\t[0] Exit.\n");
 	printf("\t[1] Read Analog Value.\n");
 	scanf(" %c",&entry); // Attention l'espace de le % est important.
 	switch (entry){
@@ -60,7 +86,7 @@ int CLI(command* cmd){
 	    valide = TRUE;
 	    break;
 	default :
-	    printf("\t[Commande Invalide]\n.");
+	    printf("\t[Commande Invalide]\n");
 	    break;
 	}
 	scanf("%*[^\n]"); // Vide le buffer d'entree
@@ -75,7 +101,8 @@ int commandGetAnalog(command* cmd){
     printf("\t[1]\tWhich Pin ? [0-5]\n");
     scanf(" %c",&entry);
     cmd->Argument[0] = entry - '0';
-
+    //    printf("[%d]\n",(int)(cmd->Argument[0]));
+    
     return 0;
 }
 
@@ -125,6 +152,9 @@ int openSerial(char* serialFile){
 }
 
 
+void printCommand(command* cmd){
+    printf(" CMD: V[%1d] F[%1d] A0[%3d] A1[%3d]\n",cmd->Version, cmd->Function, cmd->Argument[0], cmd->Argument[1]);
+}
 
 // Assumes little endian
 void printBits(size_t const size, void const * const ptr)

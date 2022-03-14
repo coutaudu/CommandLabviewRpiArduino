@@ -25,7 +25,7 @@ PROGS = SerialServer
 
 all: $(PROGS)
 
-%.o: %.c $(INCLUDE)
+%.o: %.c %.h $(INCLUDE)
 	$(CC) $(CFLAGS) $(INCLDIR) -c -o $@ $<
 
 %: %.o $(OBJS)

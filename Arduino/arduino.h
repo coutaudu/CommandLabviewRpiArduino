@@ -38,3 +38,4 @@ command getErrorCommand();
 
 // Initialise la connexion serie;
 void initSerial();
+
