@@ -6,11 +6,14 @@
 
 //DEFITION STRUCTURES ET TYPES
 typedef struct command{
-    unsigned char Version; // Version 0. 1-255 RFU.
-    unsigned char Function; // 0 getAnalog, 1 setDigital. 2-255 RFU.
-    unsigned char Argument; 
+    unsigned char Version; // Version 1. 2-255 RFU. 0 Error
+    unsigned char Function; // 1 getAnalog, 2 setDigital. 3-255 RFU.
+    unsigned char Argument[2];
 }command;
 
 #define INVALID_CMD 0
 #define GET_ANALOG 1
 #define SET_DIGITAL 2
+
+#define TRUE 1==1
+#define FALSE 0==2

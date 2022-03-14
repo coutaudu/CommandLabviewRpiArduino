@@ -11,42 +11,81 @@
 // @A0=14
 #define ANALOG_PIN_0 A0
 #define DEBUG 1==2
+#define INTERVAL_BUILTIN_LED_BLINK 500
+#define NB_ANALOG_PINS 6
 
 // VARIABLES GLOBALES PERSISTENTES
-int DELAI = 5000;
+int DELAI = 100;
+unsigned long previousMillis=0;
+int builtInLedState = LOW;
 
 /****************************************************/
 // Exécuté à la mise sous tension de l'arduino.
 void setup() {
-    Serial.begin(115200,SERIAL_8N1);//  setup serial
-    while (!Serial) {
-	; // wait for serial port to connect. Needed for native USB
-    }
-    pinMode(11, OUTPUT);
-
+    initSerial();
+    pinMode(LED_BUILTIN, OUTPUT);
 }
 
 // Exécuté en boucle à l'infini.
 void loop() {
     
-    int val = 666;
-    Serial.write((char)(val>>0));
-    Serial.write((char)(val>>8));
-    Serial.flush();
-    if(((char)(val>>0))==0) Serial.println("A\n");
-    if(((char)(val>>8))==0) Serial.println("B\n");
-
-    /* command cmd; */
-    /* if(getCommand(&cmd)==0){ */
-    /* 	if (DEBUG) Serial.write("getCommand OK\n"); */
-    /* 	executeCommand(cmd); */
-    /* }else{ */
-    /* 	unsigned int err = 0xFFFF; */
-    /* 	Serial.write((char*)(&err),sizeof(int)); */
-    /* 	Serial.flush(); */
-    /* 	if (DEBUG) Serial.write("getCommand NOT OK\n"); */
-    /* } */
+    command cmd;
+    if(getCommand(&cmd)==0){
+	executeCommand(cmd);
+    }else{
+	cmd = getErrorCommand();
+	sendCommand(&cmd);
+    }
     delay(DELAI);
+}
+
+
+int getAnalogPin(unsigned char analogPinIndex){
+    int analogPinAddress;
+    int analogValue;
+    command cmd;
+    
+    // Prepare commande "réponse" à envoyer
+    cmd.Function = GET_ANALOG;
+
+    if(analogPinIndex<NB_ANALOG_PINS){
+	analogPinAddress = ANALOG_PIN_0 + analogPinIndex;
+	analogValue = analogRead(analogPinAddress);
+	cmd.Version = 1;
+	*((int*)(cmd.Argument)) = analogValue;
+    } else {
+	// Si la pin demandée n'existe pas, on renvoie la commande d'erreur.
+	cmd = getErrorCommand();
+    }
+    
+    sendCommand(&cmd);
+    return analogValue;
+}
+
+
+
+int executeCommand(command cmd){
+
+    switch (cmd.Function){
+    case GET_ANALOG:
+	//	Serial.println((String)"Commande GET<"+cmd.Argument+"> sizeof(short)"+sizeof(short));
+      	getAnalogPin(cmd.Argument[0]);
+	return 0;
+	break;
+    default:
+	//Serial.write((String)"Commande ["+cmd.Function+"] inconnue.");
+	return -1;
+    }    
+}
+
+
+int getCommand(command* cmd){
+    cmd->Version  = getNextUnsignedChar();
+    cmd->Function = getNextUnsignedChar();
+    cmd->Argument[0] = getNextUnsignedChar();
+    cmd->Argument[1] = getNextUnsignedChar();
+	
+    return checkCommand(cmd);
 }
 
 void blinkPin11(){
@@ -62,9 +101,7 @@ void blinkPin11(){
     }
 }
 
-#define INTERVAL_BUILTIN_LED_BLINK 500
-unsigned long previousMillis=0;
-int builtInLedState = LOW;
+
 void blinkBuiltIn(){
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= INTERVAL_BUILTIN_LED_BLINK) {
@@ -83,13 +120,12 @@ void turnOffBuiltIn(){
 }
 
 /****************************************************/
+
 unsigned char getNextUnsignedChar(){
     int in;
-    int n;
-    if (DEBUG) Serial.write("E");
     
     while (Serial.available()<=0) {
-	blinkPin11();
+	blinkBuiltIn();
     }
     in =  Serial.read();
     return (unsigned char)in;
@@ -101,41 +137,40 @@ int checkCommand(command* cmd){
     return 0;   
 }
 
-int getCommand(command* cmd){
-    cmd->Version  = getNextUnsignedChar();
-    cmd->Function = getNextUnsignedChar();
-    cmd->Argument = getNextUnsignedChar();
-	
-    return checkCommand(cmd);
-}
-
-int executeCommand(command cmd){
-
-    switch (cmd.Function){
-    case GET_ANALOG:
-	//	Serial.println((String)"Commande GET<"+cmd.Argument+"> sizeof(short)"+sizeof(short));
-      	getAnalogPin(cmd.Argument);
-	return 0;
-	break;
-    default:
-	//Serial.write((String)"Commande ["+cmd.Function+"] inconnue.");
-	return -1;
-    }    
-}
 
 int sendInteger(int value){
-    Serial.write(((char*)&value),2); // sizeof(Int)==2 sur Arduino Uno.
+    int nbBytesSent;
+    Serial.write((char*)(&value),2); // sizeof(Int)==2 sur Arduino Uno.
     Serial.flush();
+
+    return nbBytesSent;
 }
 
-int getAnalogPin(unsigned char analogPinIndex){
-    int analogPinAddress;
-    int analogValue;
+int sendCommand(command* cmd){
+    int nbBytesSent;
+    nbBytesSent = Serial.write((char*)cmd,sizeof(command)); 
+    Serial.flush();
 
-    analogPinAddress = ANALOG_PIN_0 + analogPinIndex;
-    analogValue = analogRead(analogPinAddress);
-    sendInteger(analogValue);
-    
-    return analogValue;
+    return nbBytesSent;
 }
 
+command getErrorCommand(){
+    command cmd;
+    cmd.Version  = 0;
+    cmd.Function = 0;
+    cmd.Argument[0] = 0;
+    cmd.Argument[1] = 0;
+
+    return cmd;
+}
+
+void initSerial(){
+    Serial.begin(115200,SERIAL_8N1);
+    while (!Serial) {
+	; // wait for serial port to connect. Needed for native USB
+    }
+    //Vide la ligne série.
+    while (Serial.available()>0) {
+	Serial.read();
+    }
+}
