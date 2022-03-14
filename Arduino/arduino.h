@@ -21,5 +21,9 @@ int executeCommand(command cmd);
 
 // Lit une valeur sur les pins "analog".
 int getAnalogPin(unsigned char analogPinIndex);
-	
 
+// Envoie un entier sur la ligne série.
+// En binaire (au lieu de ASCII)
+int sendInteger(int value);
+void blinkBuiltIn();
+void turnOffBuiltIn();

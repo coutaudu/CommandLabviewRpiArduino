@@ -10,11 +10,10 @@
 //////////////////////
 // @A0=14
 #define ANALOG_PIN_0 A0
-
 #define DEBUG 1==2
 
 // VARIABLES GLOBALES PERSISTENTES
-int DELAI = 2000;
+int DELAI = 5000;
 
 /****************************************************/
 // Exécuté à la mise sous tension de l'arduino.
@@ -24,21 +23,29 @@ void setup() {
 	; // wait for serial port to connect. Needed for native USB
     }
     pinMode(11, OUTPUT);
-	
+
 }
 
 // Exécuté en boucle à l'infini.
 void loop() {
-    command cmd;
-    Serial.write("LOOP\r\n");
-    blinkPin11();
+    
+    int val = 666;
+    Serial.write((char)(val>>0));
+    Serial.write((char)(val>>8));
+    Serial.flush();
+    if(((char)(val>>0))==0) Serial.println("A\n");
+    if(((char)(val>>8))==0) Serial.println("B\n");
+
+    /* command cmd; */
     /* if(getCommand(&cmd)==0){ */
-    /* 	if (DEBUG) Serial.write("getCommand OK"); */
+    /* 	if (DEBUG) Serial.write("getCommand OK\n"); */
     /* 	executeCommand(cmd); */
     /* }else{ */
-    /* 	if (DEBUG) Serial.write("getCommand NOT OK"); */
+    /* 	unsigned int err = 0xFFFF; */
+    /* 	Serial.write((char*)(&err),sizeof(int)); */
+    /* 	Serial.flush(); */
+    /* 	if (DEBUG) Serial.write("getCommand NOT OK\n"); */
     /* } */
-
     delay(DELAI);
 }
 
@@ -54,6 +61,27 @@ void blinkPin11(){
 	delay(2);
     }
 }
+
+#define INTERVAL_BUILTIN_LED_BLINK 500
+unsigned long previousMillis=0;
+int builtInLedState = LOW;
+void blinkBuiltIn(){
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= INTERVAL_BUILTIN_LED_BLINK) {
+	previousMillis = currentMillis;
+	if (builtInLedState == LOW) {
+	    builtInLedState = HIGH;
+	} else {
+	    builtInLedState = LOW;
+	}
+	digitalWrite(LED_BUILTIN, builtInLedState);
+    }
+}
+
+void turnOffBuiltIn(){
+    digitalWrite(LED_BUILTIN, LOW);
+}
+
 /****************************************************/
 unsigned char getNextUnsignedChar(){
     int in;
@@ -64,11 +92,6 @@ unsigned char getNextUnsignedChar(){
 	blinkPin11();
     }
     in =  Serial.read();
-    delay(5);
-    if (DEBUG) Serial.write("\nin[");
-    if (DEBUG) if ( in<=126 && in>=' ') Serial.write(in);
-    if (DEBUG) Serial.write("]\n");
-    if (DEBUG) Serial.write("F");
     return (unsigned char)in;
 }
 
@@ -79,13 +102,9 @@ int checkCommand(command* cmd){
 }
 
 int getCommand(command* cmd){
-    if (DEBUG) Serial.write("A");
     cmd->Version  = getNextUnsignedChar();
-    if (DEBUG) Serial.write("B");
     cmd->Function = getNextUnsignedChar();
-    if (DEBUG) Serial.write("C");
     cmd->Argument = getNextUnsignedChar();
-    if (DEBUG) Serial.write("D");
 	
     return checkCommand(cmd);
 }
@@ -94,9 +113,8 @@ int executeCommand(command cmd){
 
     switch (cmd.Function){
     case GET_ANALOG:
-	if (DEBUG) Serial.write("F");
-	//	Serial.write((String)"Commande GET<"+cmd.Argument+">");
-	getAnalogPin(cmd.Argument);
+	//	Serial.println((String)"Commande GET<"+cmd.Argument+"> sizeof(short)"+sizeof(short));
+      	getAnalogPin(cmd.Argument);
 	return 0;
 	break;
     default:
@@ -105,16 +123,19 @@ int executeCommand(command cmd){
     }    
 }
 
+int sendInteger(int value){
+    Serial.write(((char*)&value),2); // sizeof(Int)==2 sur Arduino Uno.
+    Serial.flush();
+}
+
 int getAnalogPin(unsigned char analogPinIndex){
     int analogPinAddress;
     int analogValue;
 
-    //    if (DEBUG) Serial.write();
     analogPinAddress = ANALOG_PIN_0 + analogPinIndex;
     analogValue = analogRead(analogPinAddress);
-    //    if (DEBUG) Serial.write((String)"A"+analogPinIndex+", "+analogValue+",");
-    //    if (DEBUG) Serial.write();
-
+    sendInteger(analogValue);
+    
     return analogValue;
 }
 

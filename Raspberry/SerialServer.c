@@ -6,6 +6,22 @@
 #define SERIAL_FILE_2 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
 
+// Assumes little endian
+void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+    
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
+    puts("");
+}
+
 int main(){
     char buf[MAXLINE];
     int fileDescriptorSerialPort1;
@@ -19,14 +35,14 @@ int main(){
      *******************/
     fileDescriptorSerialPort1 = openSerial(SERIAL_FILE_1);
     //    fileDescriptorSerialPort2 = openSerial(SERIAL_FILE_2);
-
-    /*    
-	  command cmd;
-	  cmd.Version  = 1;
-	  cmd.Function = GET_ANALOG;
-	  cmd.Argument = 0;
-    */
-
+    
+    
+    /* command cmd; */
+    /* cmd.Version  = 1; */
+    /* cmd.Function = GET_ANALOG; */
+    /* cmd.Argument = 0; */
+    
+    
     /*******************
      * READ LOOP       *
      *******************/
@@ -36,20 +52,24 @@ int main(){
     //    Rio_readinitb(&riobuf2, fileDescriptorSerialPort2);
     
     if(LOG) printf("\tRead Serial and print to standard ouput until closed.\n");
-
-    printf("Send first CMD.\n");
-    //    Rio_writen(fileDescriptorSerialPort1, (void*)&cmd, sizeof(cmd));
-    printf("OK.\n");
-    while ( (n = Rio_readlineb(&riobuf1, buf, MAXLINE)) > 0 ) {
+    
+    /* printf("Send CMD.\n"); */
+    /* Rio_writen(fileDescriptorSerialPort1, (void*)&cmd, sizeof(cmd)); */
+    /* printf("OK.\n"); */
+    /* printf("sizeof(int)=%d\n",sizeof(int)); */
+    
+    while (1) {
+	n = Rio_readnb(&riobuf1, buf, 2);
 	printf("n=%d\n",n);
-	/* on ecrit sur l'ecran */
-	Rio_writen(1, buf, n);
-	//	Rio_writen(fileDescriptorSerialPort1, (void*)&cmd, sizeof(cmd));
+
+	printf("<<%u>>\n",*((short*)buf));
+	// Assumes little endian
+
+	//	Rio_writen(1, buf, n);
+	/* printf("Send CMD.\n"); */
+ 	/* Rio_writen(fileDescriptorSerialPort1, (void*)&cmd, sizeof(cmd)); */
     }
       
-    /*******************
-     *                 *
-     *******************/
     if(LOG) printf("\tSerial closed by peer.\n");
     //    }  
     return 0;
