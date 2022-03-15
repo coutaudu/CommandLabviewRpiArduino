@@ -11,18 +11,29 @@
 #include <string.h>
 #include <fcntl.h>
 #include <termios.h>
+#include<arpa/inet.h>
+#include<sys/socket.h>
+
 #include "csapp.h"
 
 #include "../Arduino/shared.h"
 
-#define LOG   FALSE
+#define LOG   TRUE
 #define DEBUG FALSE
 #define SERIAL_FILE_1 "/dev/ttyACM0"
 #define SERIAL_FILE_2 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
+#define PORT 7191   // Port d'écoute.
+
 
 // Ouvre et configure la ligne serie
 int openSerial(char* serialFile);
+
+// Ouvre et configure la reception UDP
+int openUDP();
+
+// UDP Interface
+int getCommandUDP(command* cmd, int socket);
 
 // Command Line Interface
 int getCommandCLI(command* cmd); 
