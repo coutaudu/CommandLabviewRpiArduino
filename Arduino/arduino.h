@@ -39,3 +39,7 @@ command getErrorCommand();
 // Initialise la connexion serie;
 void initSerial();
 
+void initPWMPins();
+
+// Traduit une addresse de Pin PWM symbolique en son addresse réelle.
+int addressPWMPin(unsigned char indexPWMPin);

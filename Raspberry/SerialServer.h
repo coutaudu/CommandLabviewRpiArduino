@@ -30,6 +30,9 @@ int getCommandCLI(command* cmd);
 // Recois instruction via interface console.
 int commandGetAnalog(command* cmd);
 
+// Recois instruction via interface console.
+int commandSetDigitalPWM(command* cmd);
+
 // Envoie une commande sur la ligne série.
 // En binaire.
 int sendCommand(command* cmd, int fdDestination);

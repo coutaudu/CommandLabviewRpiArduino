@@ -33,7 +33,7 @@ int main(){
 }
 
 int handleCommand(command* request, command* response){
-    if (response->Version!=1){
+    if (response->Version!=CURRENT_VERSION){
 	printf("\t\t\t[Erreur Version]\n");
 	return -1;
     }
@@ -42,7 +42,10 @@ int handleCommand(command* request, command* response){
 	printf("\t\t\t[Erreur Commande Invalide]\n");
 	break;
     case GET_ANALOG:
-	printf("A%1u[%3u]\n",request->Argument[0], *((short*)(response->Argument)));
+	printf("\t\t\tA%1u[%3u]\n",request->Argument[0], *((short*)(response->Argument)));
+	break;
+    case SET_DIGITAL:
+	printf("\t\t\tD%1u[%3u]\n",request->Argument[0], response->Argument[0]);
 	break;
     default:
 	printf("\t\t\t[<Erreur Fonction Inconnue]\n");
@@ -70,19 +73,24 @@ int sendCommand(command* cmd, int fdSerial){
 int getCommandCLI(command* cmd){
     int exit = FALSE;
     int valide = FALSE;
-    char entry;
+    char choice;
 
     while(!valide) {
 	printf("\n\t[0] Exit.\n");
-	printf("\t[1] Read Analog Value.\n");
-	scanf(" %c",&entry); // Attention l'espace de le % est important.
-	switch (entry){
+	printf("\t[1] Read Analog.\n");
+	printf("\t[2] Write Digital PWM.\n"); 
+	scanf(" %c",&choice); // Attention l'espace de le % est important.
+	switch (choice){
 	case '0':
 	    exit = TRUE;
 	    valide = TRUE;
 	    break;
 	case '1':
 	    commandGetAnalog(cmd);
+	    valide = TRUE;
+	    break;
+	case '2':
+	    commandSetDigitalPWM(cmd);
 	    valide = TRUE;
 	    break;
 	default :
@@ -94,9 +102,28 @@ int getCommandCLI(command* cmd){
     return exit;
 }
 
+int commandSetDigitalPWM(command* cmd){
+    char pin;
+    unsigned char value;
+
+    printf("\t[2]\tWhich Pin ? [0-5]\n");
+    scanf(" %c",&pin);
+    printf("\t[2]\tValue ? [0-255]\n");
+    scanf(" %hhu",&value);
+    printf("\t[2]\tD[%c]<-%3d\n",pin,value);
+    cmd->Version  = CURRENT_VERSION;
+    cmd->Function = SET_DIGITAL;
+    cmd->Argument[0] = pin - '0';
+    cmd->Argument[1] = value;
+    //    printf("[%d]\n",(int)(cmd->Argument[0]));
+    return 0;
+    
+}
+
 int commandGetAnalog(command* cmd){
     char entry;
-    cmd->Version  = 1;
+    
+    cmd->Version  = CURRENT_VERSION;
     cmd->Function = GET_ANALOG;
     printf("\t[1]\tWhich Pin ? [0-5]\n");
     scanf(" %c",&entry);

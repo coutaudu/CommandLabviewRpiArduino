@@ -17,3 +17,8 @@ typedef struct command{
 
 #define TRUE 1==1
 #define FALSE 0==2
+
+#define NB_ANALOG_PINS 6
+#define NB_DIGITAL_PWM_PINS 6
+
+#define CURRENT_VERSION 1

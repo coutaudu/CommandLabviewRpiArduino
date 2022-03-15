@@ -12,7 +12,7 @@
 #define ANALOG_PIN_0 A0
 #define DEBUG 1==2
 #define INTERVAL_BUILTIN_LED_BLINK 500
-#define NB_ANALOG_PINS 6
+
 
 // VARIABLES GLOBALES PERSISTENTES
 int DELAI = 100;
@@ -23,8 +23,8 @@ int builtInLedState = LOW;
 // Exécuté à la mise sous tension de l'arduino.
 void setup() {
     initSerial();
+    initPWMPins();
     pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(11, OUTPUT);
 }
 
 // Exécuté en boucle à l'infini.
@@ -36,7 +36,6 @@ void loop() {
     }else{
 	cmd = getErrorCommand();
 	sendCommand(&cmd);
-	blinkPin11();
     }
     delay(DELAI);
 }
@@ -45,33 +44,57 @@ void loop() {
 int getAnalogPin(unsigned char analogPinIndex){
     int analogPinAddress;
     int analogValue;
+    int retval;
     command cmd;
     
-    // Prepare commande "réponse" à envoyer
-    cmd.Function = GET_ANALOG;
-
     if(analogPinIndex<NB_ANALOG_PINS){
 	analogPinAddress = ANALOG_PIN_0 + analogPinIndex;
 	analogValue = analogRead(analogPinAddress);
-	cmd.Version = 1;
+	cmd.Version = CURRENT_VERSION;
+	cmd.Function = GET_ANALOG;
 	*((int*)(cmd.Argument)) = analogValue;
+	retval = analogValue;
     } else {
 	// Si la pin demandée n'existe pas, on renvoie la commande d'erreur.
 	cmd = getErrorCommand();
+	retval = -1;
     }
-    
+   
     sendCommand(&cmd);
-    return analogValue;
+    return retval;
 }
 
+int setDigitalPin(unsigned char digitalPinIndex, unsigned char value){
+    int pin;
+    int retval;
+    command cmd;
+    
+    pin = addressPWMPin(digitalPinIndex);
+    if ( pin != -1){
+	analogWrite(addressPWMPin(digitalPinIndex), (int)value);
+	cmd.Version = CURRENT_VERSION;
+	cmd.Function = SET_DIGITAL;
+	cmd.Argument[0] = digitalPinIndex;
+	cmd.Argument[1] = value;
+	retval = 0;
+    }else {
+	cmd = getErrorCommand();
+	retval = -1;
+    }
 
+    sendCommand(&cmd);
+    return retval;
+}
+    
 
 int executeCommand(command cmd){
-
     switch (cmd.Function){
     case GET_ANALOG:
-	//	Serial.println((String)"Commande GET<"+cmd.Argument+"> sizeof(short)"+sizeof(short));
       	getAnalogPin(cmd.Argument[0]);
+	return 0;
+	break;
+    case SET_DIGITAL:
+	setDigitalPin(cmd.Argument[0],cmd.Argument[1]);
 	return 0;
 	break;
     default:
@@ -134,7 +157,7 @@ unsigned char getNextUnsignedChar(){
 }
 
 int checkCommand(command* cmd){
-    if (cmd->Version!=1) {return -1;}
+    if (cmd->Version!=CURRENT_VERSION) {return -1;}
     if (cmd->Function>2) {return -2;}
     return 0;   
 }
@@ -158,7 +181,7 @@ int sendCommand(command* cmd){
 
 command getErrorCommand(){
     command cmd;
-    cmd.Version  = 1;
+    cmd.Version  = CURRENT_VERSION;
     cmd.Function = 0;
     cmd.Argument[0] = 0;
     cmd.Argument[1] = 0;
@@ -174,5 +197,38 @@ void initSerial(){
     //Vide la ligne série.
     while (Serial.available()>0) {
 	Serial.read();
+    }
+}
+
+int addressPWMPin(unsigned char indexPWMPin){
+    switch (indexPWMPin){
+    case 0:
+	return 11;
+	break;
+    case 1:
+	return 10;
+	break;
+    case 2:
+	return 9;
+	break;
+    case 3:
+	return 6;
+	break;
+    case 4:
+	return 5;
+	break;
+    case 5:
+	return 3;
+	break;
+    default:
+	return -1;
+	break;
+    }
+}
+
+void initPWMPins(){
+    int i;
+    for  (i = 0; i<NB_DIGITAL_PWM_PINS; i++){
+	pinMode(addressPWMPin(i), OUTPUT);
     }
 }
