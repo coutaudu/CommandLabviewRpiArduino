@@ -11,8 +11,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <termios.h>
-#include<arpa/inet.h>
-#include<sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 #include "csapp.h"
 

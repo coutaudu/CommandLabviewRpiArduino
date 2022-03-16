@@ -9,27 +9,84 @@
 int main(){
     int fileDescriptorSerialPort1;
     // int fileDescriptorSerialPort2;
+    int socketUDP;
     command request, response;
     int exit;
-   
+
     fileDescriptorSerialPort1 = openSerial(SERIAL_FILE_1);
-    //    fileDescriptorSerialPort2 = openSerial(SERIAL_FILE_2);    
-    
-    if(LOG) printf("\tInitialize Buffurized RIO.\n");
-    
-    if(LOG) printf("\tRead Serial and print to standard ouput until closed.\n");
-    
-    exit = getCommandCLI(&request);
+   //    fileDescriptorSerialPort2 = openSerial(SERIAL_FILE_2);    
+
+    socketUDP = openUDP();
+    exit = getCommandUDP(&request, socketUDP);
+    //    exit = getCommandCLI(&request);
     while (!exit) {
 	sendCommand(&request, fileDescriptorSerialPort1);
 	receiveCommand(&response, fileDescriptorSerialPort1);
 	handleCommand(&request, &response);
-	exit = getCommandCLI(&request);
+	exit = getCommandUDP(&request, socketUDP);
+	// exit = getCommandCLI(&request);
+	
     };
 
     close(fileDescriptorSerialPort1);
     if(LOG) printf("\tSerial closed by peer.\n");
     return 0;
+}
+
+int getCommandUDP(command* cmd, int socket){
+    int nbBytesReceived;
+    socklen_t addrlen;
+    struct sockaddr_in infosSocketClient;
+    char bufferReception[MAXBUF];
+
+
+    if(LOG) printf("Get Command From UDP.\n");
+
+    // man: (...) addrlen is a value-result argument (...)
+    addrlen = sizeof(infosSocketClient); 
+    
+    // Recevoir données. ! Appel bloquant ! 
+    if (
+	(nbBytesReceived = recvfrom(socket,
+				    bufferReception,
+				    sizeof(command),
+				    0,
+				    (struct sockaddr *) &infosSocketClient,
+				    &addrlen))
+	== -1) {
+	perror("recvfrom()");
+    }
+    return 0;
+}
+
+int openUDP(){
+    struct sockaddr_in infosSocketServer;
+    int socketReceptionUDP;
+
+    if(LOG) printf("\tOpen UDP Port[%5d]\n",PORT);
+
+    if ((socketReceptionUDP=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+	perror("socket");
+	return -1;
+    }
+    if(LOG) printf("\t\tSocket Creation Successful. Socket[%1d]\n",socketReceptionUDP);
+    
+    // Vide les structures.
+    memset((char *) &infosSocketServer, 0, sizeof(infosSocketServer));	
+    infosSocketServer.sin_family = AF_INET;
+    infosSocketServer.sin_port = htons(PORT);
+    infosSocketServer.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    //bind socket to port
+    if( bind(socketReceptionUDP , (struct sockaddr*)&infosSocketServer, sizeof(infosSocketServer) ) == -1) {
+	perror("bind");
+	return -1;
+    }
+    if(LOG) printf("\t\tSocket Bind Successful.\n");
+    
+    if(LOG) printf("\n");
+    return socketReceptionUDP;
+
 }
 
 int handleCommand(command* request, command* response){
@@ -137,7 +194,7 @@ int openSerial(char* serialFile){
     int fileDescriptor;
     struct termios term;
 
-    if(LOG) printf("\tOpen Serial [%s]\n",serialFile);
+    if(LOG) printf("\n\tOpen Serial [%s]\n",serialFile);
     while ( (fileDescriptor = open(serialFile, O_RDWR,0))<0) {
 	if(LOG) printf("\t\tFailed. Returned FileDescriptor [%d].\n", fileDescriptor);
 	if(LOG) printf("\t\t[%s]\n", strerror(errno));
@@ -173,6 +230,8 @@ int openSerial(char* serialFile){
     if (tcsetattr(fileDescriptor, TCSANOW, &term) != 0) {
 	printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
     }
+    if(LOG) printf("\n");
+
     
     return fileDescriptor;
   
