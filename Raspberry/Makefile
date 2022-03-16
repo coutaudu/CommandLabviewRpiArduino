@@ -21,7 +21,6 @@ INCLDIR = -I.
 
 PROGS = SerialServer Client
 
-
 all: $(PROGS)
 
 %.o: %.c %.h $(INCLUDE)

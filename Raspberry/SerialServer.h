@@ -23,7 +23,7 @@
 #define SERIAL_FILE_1 "/dev/ttyACM0"
 #define SERIAL_FILE_2 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
-#define PORT 7191   // Port d'écoute.
+
 
 
 // Ouvre et configure la ligne serie
@@ -34,15 +34,6 @@ int openUDP();
 
 // UDP Interface
 int getCommandUDP(command* cmd, int socket);
-
-// Command Line Interface
-int getCommandCLI(command* cmd); 
-
-// Recois instruction via interface console.
-int commandGetAnalog(command* cmd);
-
-// Recois instruction via interface console.
-int commandSetDigitalPWM(command* cmd);
 
 // Envoie une commande sur la ligne série.
 // En binaire.

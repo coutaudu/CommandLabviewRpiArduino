@@ -6,4 +6,5 @@ Raspberry/readSerial
 Arduino/build-uno/
 Arduino/MakefileOld
 SerialServer
+Client
 *.svd

@@ -22,3 +22,7 @@ typedef struct command{
 #define NB_DIGITAL_PWM_PINS 6
 
 #define CURRENT_VERSION 1
+
+#define PORT 7191   // Port d'écoute.
+
+
