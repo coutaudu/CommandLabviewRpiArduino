@@ -7,7 +7,7 @@
 #include <EEPROM.h>
 
 // Arduino Uno EEPROM de 0 à 512 
-#define EEPROM_UID_ADDRESS 0;
+#define EEPROM_UID_ADDRESS 0
 
 // Lit l'octet suivant sur la ligne série.
 unsigned char getNextUnsignedChar();
@@ -53,5 +53,5 @@ int addressPWMPin(unsigned char indexPWMPin);
 // L'eeprom s'use à chaque écriture (environ 100 000 max)
 int setBoardUID(unsigned char uid);
 
-unsigned char getBoardUID();
+int getBoardUID();
 

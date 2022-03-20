@@ -21,11 +21,17 @@
 // Command Line Interface
 int getCommandCLI(command* cmd); 
 
-// Recois instruction via interface console.
+// Recoit instruction via interface console.
 int commandGetAnalog(command* cmd);
 
-// Recois instruction via interface console.
+// Recoit instruction via interface console.
 int commandSetDigitalPWM(command* cmd);
+
+// Recoit instruction via interface console.
+int commandGetUID(command* cmd);
+
 /**********/
+
+
 
 int initUDP();

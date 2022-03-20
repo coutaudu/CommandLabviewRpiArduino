@@ -1,11 +1,12 @@
-// udp client driver program
+/******************/
+/* COUTAUD Ulysse */
+/* L3P AII LYON1  */
+/* 2022		  */
+/******************/
 #include "Client.h"
-
-  
   
 // Driver code
 int main() {   
-
     int sockfd;
     command cmd;
     int exit;
@@ -14,23 +15,10 @@ int main() {
 	
     exit = getCommandCLI(&cmd);
     while (!exit) {
-	//	sendCommand(&request, fileDescriptorSerialPort1);
 	send(sockfd, &cmd, sizeof(command), 0);
-	//	receiveCommand(&response, fileDescriptorSerialPort1);
 	exit = getCommandCLI(&cmd);
     };
-    
-    printf("Envoie Données\n");
-    // request to send datagram
-    // no need to specify server address in sendto
-    // connect stores the peers IP and port
-    
-    
-    //printf("Recoit Données\n");
-    // waiting for response
-    //    recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)NULL, NULL);
-    //puts(buffer);
-  
+     
     // close the descriptor
     close(sockfd);
 }
@@ -44,7 +32,8 @@ int getCommandCLI(command* cmd){
     while(!valide) {
 	printf("\n\t[0] Exit.\n");
 	printf("\t[1] Read Analog.\n");
-	printf("\t[2] Write Digital PWM.\n"); 
+	printf("\t[2] Write Digital PWM.\n");
+	printf("\t[3] Get UID.\n"); 
 	scanf(" %c",&choice); // Attention l'espace de le % est important.
 	switch (choice){
 	case '0':
@@ -57,6 +46,10 @@ int getCommandCLI(command* cmd){
 	    break;
 	case '2':
 	    commandSetDigitalPWM(cmd);
+	    valide = TRUE;
+	    break;
+	case '3':
+	    commandGetUID(cmd);
 	    valide = TRUE;
 	    break;
 	default :
@@ -87,6 +80,15 @@ int commandSetDigitalPWM(command* cmd){
 }
 
 
+int commandGetUID(command* cmd){
+    cmd->Version  = CURRENT_VERSION;
+    cmd->Function = GET_UID;
+    cmd->Argument[0] = 0;
+    cmd->Argument[1] = 0;
+    //    printf("[%d]\n",(int)(cmd->Argument[0]));
+    
+    return 0;
+}
 
 
 int commandGetAnalog(command* cmd){

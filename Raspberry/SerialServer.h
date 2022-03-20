@@ -19,7 +19,7 @@
 #include "../Arduino/shared.h"
 
 #define LOG   TRUE
-#define DEBUG FALSE
+#define DEBUG TRUE
 #define SERIAL_FILE_1 "/dev/ttyACM0"
 #define SERIAL_FILE_2 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3

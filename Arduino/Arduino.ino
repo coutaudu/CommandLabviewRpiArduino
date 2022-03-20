@@ -32,7 +32,7 @@ void setup() {
 // Exécuté en boucle à l'infini.
 void loop() {
     command cmd;
-
+    
     if(getCommand(&cmd)==0){
 	executeCommand(cmd);
     }else{
@@ -44,17 +44,20 @@ void loop() {
 
 
 
-unsigned char getBoardUID(){
-    int retval;
+int getBoardUID(){
     command cmd;
 
+    blinkPin11();
+    cmd = getErrorCommand();
     cmd.Version = CURRENT_VERSION;
-    cmd.Function = GET_ANALOG;
-    cmd.Argument[0] = EEPROM.read(EEPROM_UID_ADDRESS);
+    cmd.Function = GET_UID;
+    cmd.Argument[0] = (unsigned char) EEPROM.read(EEPROM_UID_ADDRESS);
+//    cmd.Argument[1] = 0; //EEPROM.read(EEPROM_UID_ADDRESS);
 
     sendCommand(&cmd);
-    
-    return ;
+
+
+    return 0  ;
 }
 
 int getAnalogPin(unsigned char analogPinIndex){
@@ -178,7 +181,11 @@ unsigned char getNextUnsignedChar(){
 
 int checkCommand(command* cmd){
     if (cmd->Version!=CURRENT_VERSION) {return -1;}
-    if (cmd->Function>2) {return -2;}
+    if (
+	cmd->Function!=GET_ANALOG
+	&& cmd->Function!=SET_DIGITAL
+	&& cmd->Function!=GET_UID
+	) {return -2;}
     return 0;   
 }
 
@@ -195,7 +202,6 @@ int sendCommand(command* cmd){
     int nbBytesSent;
     nbBytesSent = Serial.write((char*)cmd,sizeof(command)); 
     Serial.flush();
-
     return nbBytesSent;
 }
 

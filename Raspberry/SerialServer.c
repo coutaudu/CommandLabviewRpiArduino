@@ -38,7 +38,8 @@ int getCommandUDP(command* cmd, int socket){
     socklen_t addrlen;
     struct sockaddr_in infosSocketClient;
 
-    if(LOG) printf("Get Command From UDP.\n");
+    if(DEBUG) printf("Get Command From UDP:\t");
+    if(DEBUG) fflush(stdout);
 
     // man: (...) addrlen is a value-result argument (...)
     addrlen = sizeof(infosSocketClient); 
@@ -53,6 +54,9 @@ int getCommandUDP(command* cmd, int socket){
 	== -1) {
 	perror("recvfrom()");
     }
+    //    if(LOG) printf("Received Command From UDP.\n");
+    if(LOG) printCommand(cmd);
+    
     return 0;
 }
 
@@ -106,7 +110,7 @@ int handleCommand(command* request, command* response){
 	printf("\t\t\tUID[%1u]\n",request->Argument[0]);
 	break;
     default:
-	printf("\t\t\t[<Erreur Fonction Inconnue]\n");
+	printf("\t\t\t[Erreur Fonction Inconnue]\n");
     }
     return 0;
 }
@@ -114,15 +118,17 @@ int handleCommand(command* request, command* response){
 
 int receiveCommand(command* cmd, int fdSerial){
     int n;
+    if (DEBUG) printf("Start rcv %d bytes:\n",sizeof(command));
     n = rio_readn(fdSerial, cmd, sizeof(command));
-    if (DEBUG) printf("Rcvd %d bytes: ",n);
+    if (DEBUG) printf("Rcvd %d bytes:\t\t",n);
     if (DEBUG) printCommand(cmd);
     return n;
 }
+
 int sendCommand(command* cmd, int fdSerial){
     int n;
     n = rio_writen(fdSerial, cmd, sizeof(command));
-    if (DEBUG) printf("Send %d bytes: ",n);
+    if (DEBUG) printf("Send %d bytes:\t\t",n);
     if (DEBUG) printCommand(cmd);
     return n;
 }
@@ -146,24 +152,18 @@ int openSerial(char* serialFile){
 	printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
     }
 
-    term.c_lflag &= ~ECHO;
-    cfsetspeed(&term, B115200);
-    term.c_cflag &= ~PARENB;
-    term.c_cflag &= ~CSTOPB;
-    term.c_cflag &= ~CSIZE;
-    term.c_cflag |= CS8;
-    term.c_cflag &= ~CRTSCTS; // Disable RTS/CTS
-    term.c_cflag |= CREAD | CLOCAL;
-    // Désactive mode CANONIQUE, cad n'attend le retour a la ligne
-    term.c_lflag &= ~ICANON; 
-    term.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
-    // Disable any special handling of received bytes
-    term.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); 
-    // Prevent special interpretation of output bytes (e.g. newline chars)
-    term.c_oflag &= ~OPOST;
-    // Prevent conversion of newline to carriage return/line feed
-    term.c_oflag &= ~ONLCR; 
 
+    cfsetspeed(&term, B115200);
+    term.c_lflag &= ~ ( ECHO | ECHONL | ISIG | IEXTEN );
+    term.c_cflag &= ~ ( PARENB | CSTOPB | CSIZE | CRTSCTS | ICANON );
+    term.c_cflag |= CS8 | CREAD | CLOCAL;
+    // Disable any special handling of received bytes
+    term.c_iflag &= ~(IXON|IXOFF|IXANY|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); 
+    term.c_oflag &= ~ ( OPOST | ONLCR ); 
+    
+    // Une bonne partie pourrai être remplacé par:
+    // cfmakeraw(&term); 
+    
     if (tcsetattr(fileDescriptor, TCSANOW, &term) != 0) {
 	printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
     }
