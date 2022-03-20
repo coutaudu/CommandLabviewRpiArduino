@@ -15,11 +15,11 @@ LDFLAGS =
 #LIBS += -lsocket -lnsl -lrt
 LIBS += -lpthread
 
-INCLUDE = ./csapp.h
-OBJS = ./csapp.o
+INCLUDE = 
+OBJS = 
 INCLDIR = -I.
 
-PROGS = SerialServer
+PROGS = Client
 
 all: $(PROGS)
 
@@ -29,5 +29,6 @@ all: $(PROGS)
 %: %.o $(OBJS)
 	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
 #	$(CC) -o $@ $(LDFLAGS) $(LIBS) $^
+
 clean:
 	rm -f $(PROGS) *.o output.txt

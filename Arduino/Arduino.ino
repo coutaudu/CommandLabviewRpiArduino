@@ -25,6 +25,8 @@ void setup() {
     initSerial();
     initPWMPins();
     pinMode(LED_BUILTIN, OUTPUT);
+
+    //    setBoardUID(1);
 }
 
 // Exécuté en boucle à l'infini.
@@ -40,6 +42,20 @@ void loop() {
     delay(DELAI);
 }
 
+
+
+unsigned char getBoardUID(){
+    int retval;
+    command cmd;
+
+    cmd.Version = CURRENT_VERSION;
+    cmd.Function = GET_ANALOG;
+    cmd.Argument[0] = EEPROM.read(EEPROM_UID_ADDRESS);
+
+    sendCommand(&cmd);
+    
+    return ;
+}
 
 int getAnalogPin(unsigned char analogPinIndex){
     int analogPinAddress;
@@ -97,10 +113,14 @@ int executeCommand(command cmd){
 	setDigitalPin(cmd.Argument[0],cmd.Argument[1]);
 	return 0;
 	break;
+    case GET_UID:
+	getBoardUID();
+	return 0;
+	break;
     default:
 	//Serial.write((String)"Commande ["+cmd.Function+"] inconnue.");
 	return -1;
-    }    
+    }
 }
 
 
@@ -231,4 +251,8 @@ void initPWMPins(){
     for  (i = 0; i<NB_DIGITAL_PWM_PINS; i++){
 	pinMode(addressPWMPin(i), OUTPUT);
     }
+}
+
+int setBoardUID(unsigned char uid){
+    EEPROM.update(EEPROM_UID_ADDRESS,uid);
 }

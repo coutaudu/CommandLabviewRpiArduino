@@ -8,3 +8,4 @@ Arduino/MakefileOld
 SerialServer
 Client
 *.svd
+*.o

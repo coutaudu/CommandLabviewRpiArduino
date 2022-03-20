@@ -13,6 +13,7 @@ int main(){
     command request, response;
     int exit;
 
+    // TODO Open + get EUI + affecte fd1 et fd2.
     fileDescriptorSerialPort1 = openSerial(SERIAL_FILE_1);
    //    fileDescriptorSerialPort2 = openSerial(SERIAL_FILE_2);    
 
@@ -36,8 +37,6 @@ int getCommandUDP(command* cmd, int socket){
     int nbBytesReceived;
     socklen_t addrlen;
     struct sockaddr_in infosSocketClient;
-    //    char bufferReception[MAXBUF];
-
 
     if(LOG) printf("Get Command From UDP.\n");
 
@@ -45,8 +44,7 @@ int getCommandUDP(command* cmd, int socket){
     addrlen = sizeof(infosSocketClient); 
     
     // Recevoir données. ! Appel bloquant ! 
-    if (
-	(nbBytesReceived = recvfrom(socket,
+    if ((nbBytesReceived = recvfrom(socket,
 				    cmd,
 				    sizeof(command),
 				    0,
@@ -88,6 +86,7 @@ int openUDP(){
 
 }
 
+// TODO Renvoyer en UDP au client.
 int handleCommand(command* request, command* response){
     if (response->Version!=CURRENT_VERSION){
 	printf("\t\t\t[Erreur Version]\n");
@@ -102,6 +101,9 @@ int handleCommand(command* request, command* response){
 	break;
     case SET_DIGITAL:
 	printf("\t\t\tD%1u[%3u]\n",request->Argument[0], response->Argument[0]);
+	break;
+    case GET_UID:
+	printf("\t\t\tUID[%1u]\n",request->Argument[0]);
 	break;
     default:
 	printf("\t\t\t[<Erreur Fonction Inconnue]\n");

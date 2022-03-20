@@ -14,6 +14,7 @@ typedef struct command{
 #define INVALID_CMD 0
 #define GET_ANALOG 1
 #define SET_DIGITAL 2
+#define GET_UID 3
 
 #define TRUE 1==1
 #define FALSE 0==2
