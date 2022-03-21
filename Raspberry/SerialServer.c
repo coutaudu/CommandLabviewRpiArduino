@@ -22,7 +22,8 @@ int main(){
     initFileDescriptorSerialLine(fileDescriptorSerialLine);
     fileDescriptorSerialPort1 = fileDescriptorSerialLine[0];
     //    fileDescriptorSerialPort2 = fileDescriptorSerialLine[1];
-    
+
+    if(LOG) printf("\tReady: Wait for commands.\n");
     exit = getCommandUDP(&request, socketUDP);
     while (!exit) {
 	sendCommand(&request, fileDescriptorSerialPort1);
@@ -37,45 +38,39 @@ int main(){
     return 0;
 }
 
-void initFileDescriptorSerialLine(int* fd){
+int identifyArduinoOnSerial(int fdTemp, int* fd){
     command request;
     command response;
-    int fdTemp; 
     unsigned char uidArduino;
-    
-    fdTemp = openSerial(SERIAL_FILE_1);
 
-    // sleep(2);
-    request.Version  = CURRENT_VERSION;
-    request.Function = GET_UID;
-    request.Argument[0] = 0;
-    request.Argument[1] = 0;
+    request = requestUidCommand();
     sendCommand(&request, fdTemp);
     receiveCommand(&response, fdTemp);
     uidArduino = response.Argument[0];
-    printf("\t\t\tUID[%1u]\n",response.Argument[0]);
-
-    // Filtre resultat par sureté
+    // Filtre resultat par sureté: id affectés 0 et 1.
     if (uidArduino>1) {
 	if (LOG) printf("UID Arduino non reconnu.\n");
-	exit(0);
+	return -1;
     }
-
     fd[uidArduino] = fdTemp;
-    if (LOG) printf("\tArduino[%1u] -> fd[%1u]=<%1d>\n",uidArduino,uidArduino,fd[uidArduino]);
-    
-    /* fd[1] = openSerial(SERIAL_FILE_2); */
-    /* request.Version  = CURRENT_VERSION; */
-    /* request.Function = GET_UID; */
-    /* request.Argument[0] = 0; */
-    /* request.Argument[1] = 0; */
-    /* sendCommand(&request, fd[1]); */
-    /* receiveCommand(&response, fd[1]); */
-    /* printf("\t\t\tUID[%1u]\n",response.Argument[0]); */
+    if (LOG) printf("\t\tArduino[%1u] <-> fd<%1u>\n",uidArduino,fd[uidArduino]);
 
-    
+    return 0;
 }
 
+int initFileDescriptorSerialLine(int* fd){
+    int fdTemp; 
+    
+    fdTemp = openSerial(SERIAL_FILE_0);
+    identifyArduinoOnSerial(fdTemp,fd);
+    fdTemp = openSerial(SERIAL_FILE_1);
+    identifyArduinoOnSerial(fdTemp,fd);
+
+    if(LOG) printf("\n");
+    return 0;    
+}
+
+// TODO cooriger: en l'etat repond TOUT LE TEMPS AU PREMIRE CLIENT
 int sendResponseToClientUDP(command* cmd){
     int sockfd;
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -125,7 +120,6 @@ int openUDP(){
     int socketReceptionUDP;
 
     if(LOG) printf("\tOpen UDP Port[%5d]\n",PORT);
-
     if ((socketReceptionUDP=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 	perror("socket");
 	return -1;
@@ -143,11 +137,8 @@ int openUDP(){
 	perror("bind");
 	return -1;
     }
-    if(LOG) printf("\t\tSocket Bind Successful.\n");
-    
-    if(LOG) printf("\n");
+    if(LOG) printf("\t\tSocket Bind Successful.\n\n");
     return socketReceptionUDP;
-
 }
 
 
@@ -208,7 +199,8 @@ int setSerialParameters(int fd){
 	return -1;
     }
     // Explications disponibles ici: https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
-    term.c_cflag &= ~ ( PARENB | CSTOPB | CSIZE | CRTSCTS    );
+    term.c_lflag &= ~ ( ECHO | ECHONL | ISIG | IEXTEN | ICANON );
+    term.c_cflag &= ~ ( PARENB | CSTOPB | CSIZE | CRTSCTS );
     term.c_cflag |= (CS8 | CREAD | CLOCAL) ;
     term.c_iflag &= ~(IXON|IXOFF|IXANY|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL);
     term.c_oflag &= ~ ( OPOST | ONLCR ); 
@@ -235,8 +227,7 @@ int openSerial(char* serialFile){
 	if(LOG) printf("\t\tWill try again in %d seconds.\n",TEMPO_TRY_AGAIN_OPEN_SERIAL);
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
-
-    if(LOG) printf("\tOpen Serial successful. FileDescriptor[%d]\n", fileDescriptor);
+    if(LOG) printf("\t\tOpen Serial successful. FileDescriptor[%d]\n", fileDescriptor);
 
     while (setSerialParameters(fileDescriptor)!=0){
 	printf("Error setting Serial Parameters.\n");
@@ -245,10 +236,8 @@ int openSerial(char* serialFile){
 	   
     // TODO delai semble il requis  pour laisser le temps à la ligne de demarrer
     // correctement, sinon le premier write est perdu...
-    //     sleep(2);
-    if(LOG) printf("\n");
+    sleep(3);
     return fileDescriptor;
-  
 }
 
 
@@ -270,4 +259,15 @@ void printBits(size_t const size, void const * const ptr)
         }
     }
     puts("");
+}
+
+
+
+command requestUidCommand(){
+    command cmd;
+    cmd.Version  = CURRENT_VERSION;
+    cmd.Function = GET_UID;
+    cmd.Argument[0] = 0;
+    cmd.Argument[1] = 0;
+    return cmd;
 }
