@@ -20,8 +20,7 @@ int main(){
     if(LOG) printf("\tReady: Wait for commands.\n");
     exit = getCommandUDP(&request, socketUDP, &infosClientUDP);
     while (!exit) {
-	sendCommandSerial(&request, fdSerials[0]);
-	receiveCommandSerial(&response, fdSerials[0]);
+	transmitCommandSerial(&request, &response, fdSerials );
 	sendResponseUDP(&response, socketUDP, &infosClientUDP);
 	if (LOG) logCommand(&request, &response);
 	exit = getCommandUDP(&request, socketUDP, &infosClientUDP);
@@ -32,6 +31,14 @@ int main(){
     if(LOG) printf("\tSerial closed by peer.\n");
     return 0;
 }
+
+int transmitCommandSerial(command* request, command* response, int* fdSerials){
+    sendCommandSerial(request, fdSerials[0]);
+    receiveCommandSerial(response, fdSerials[0]);
+    return 0; 
+}
+
+									  
 
 int identifyArduinoOnSerial(int fdTemp, int* fd){
     command request;

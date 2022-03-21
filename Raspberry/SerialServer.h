@@ -48,6 +48,14 @@ int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosSocketClien
 // Envoie réponse de l'arduino a client source de la requete.
 int sendResponseUDP(command* cmd, int socket, struct sockaddr_in* infosSocketClient);
 
+// Gere la communication serie avec les micro-controleurs.
+// Verifie la commande.
+// Identifie le micro controlleur de destination
+// Envoie la requete
+// Recoit la reponse
+int transmitCommandSerial(command* request, command* response, int* fdSerials);
+
+
 // Envoie une commande sur la ligne série.
 // En binaire.
 int sendCommandSerial(command* cmd, int fdDestination);
