@@ -30,10 +30,10 @@
 int openSerial(char* serialFile);
 
 // Ouvre et configure la reception UDP
-int openUDP();
+int initUDP();
 
 // Init les 2 files discriptors pour la communication serie avec les 2 cartes arduino
-int initFileDescriptorSerialLine(int* fd);
+int initSerials(int* fd);
 
 int identifyArduinoOnSerial(int fdTemp, int* fd);
 
@@ -46,15 +46,15 @@ int setSerialParameters(int fd);
 int getCommandUDP(command* cmd, int socket);
 
 // Envoie réponse de l'arduino a client source de la requete.
-int sendResponseToClientUDP(command* cmd);
+int sendResponseUDP(command* cmd);
 
 // Envoie une commande sur la ligne série.
 // En binaire.
-int sendCommand(command* cmd, int fdDestination);
+int sendCommandSerial(command* cmd, int fdDestination);
 
 // Reçoit une commande (une réponse donc)) sur la ligne série.
 // En binaire.
-int receiveCommand(command* cmd, int fdSerial);
+int receiveCommandSerial(command* cmd, int fdSerial);
 
 void printCommand(command* cmd);
 

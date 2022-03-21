@@ -10,30 +10,26 @@ struct sockaddr_in infosSocketClient;
 
 
 int main(){
-    int fileDescriptorSerialPort1;
-    // int fileDescriptorSerialPort2;
-    int fileDescriptorSerialLine[2];
+    int fdSerials[2];
     int socketUDP;
     command request, response;
     int exit;
 
-    socketUDP = openUDP();
-    
-    initFileDescriptorSerialLine(fileDescriptorSerialLine);
-    fileDescriptorSerialPort1 = fileDescriptorSerialLine[0];
-    //    fileDescriptorSerialPort2 = fileDescriptorSerialLine[1];
+    socketUDP = initUDP();
+    initSerials(fdSerials);
 
     if(LOG) printf("\tReady: Wait for commands.\n");
     exit = getCommandUDP(&request, socketUDP);
     while (!exit) {
-	sendCommand(&request, fileDescriptorSerialPort1);
-	receiveCommand(&response, fileDescriptorSerialPort1);
-	sendResponseToClientUDP(&response);
+	sendCommandSerial(&request, fdSerials[0]);
+	receiveCommandSerial(&response, fdSerials[0]);
+	sendResponseUDP(&response);
 	if (LOG) logCommand(&request, &response);
 	exit = getCommandUDP(&request, socketUDP);
     };
 
-    close(fileDescriptorSerialPort1);
+    close(fdSerials[0]);
+    close(fdSerials[1]);
     if(LOG) printf("\tSerial closed by peer.\n");
     return 0;
 }
@@ -44,8 +40,8 @@ int identifyArduinoOnSerial(int fdTemp, int* fd){
     unsigned char uidArduino;
 
     request = requestUidCommand();
-    sendCommand(&request, fdTemp);
-    receiveCommand(&response, fdTemp);
+    sendCommandSerial(&request, fdTemp);
+    receiveCommandSerial(&response, fdTemp);
     uidArduino = response.Argument[0];
     // Filtre resultat par sureté: id affectés 0 et 1.
     if (uidArduino>1) {
@@ -58,7 +54,7 @@ int identifyArduinoOnSerial(int fdTemp, int* fd){
     return 0;
 }
 
-int initFileDescriptorSerialLine(int* fd){
+int initSerials(int* fd){
     int fdTemp; 
     
     fdTemp = openSerial(SERIAL_FILE_0);
@@ -71,7 +67,7 @@ int initFileDescriptorSerialLine(int* fd){
 }
 
 // TODO cooriger: en l'etat repond TOUT LE TEMPS AU PREMIRE CLIENT
-int sendResponseToClientUDP(command* cmd){
+int sendResponseUDP(command* cmd){
     int sockfd;
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(connect(sockfd, (struct sockaddr *)&infosSocketClient, sizeof(infosSocketClient)) < 0) {
@@ -110,12 +106,11 @@ int getCommandUDP(command* cmd, int socket){
     }
 
     //    if(LOG) printf("Received Command From UDP.\n");
-    if(LOG) printCommand(cmd);
     
     return ( cmd->Version != CURRENT_VERSION );
 }
 
-int openUDP(){
+int initUDP(){
     struct sockaddr_in infosSocketServer;
     int socketReceptionUDP;
 
@@ -143,33 +138,36 @@ int openUDP(){
 
 
 int logCommand(command* request, command* response){
-    if(DEBUG) printf("logCommand: ");
-    if (DEBUG) printCommand(response);
+    printf("\t");
+    printCommand(request);
+    printf("\t->\t");
     if (response->Version!=CURRENT_VERSION){
-	printf("\t\t\t[Erreur Version]\n");
+	printf("[Erreur Version]\n");
 	return -1;
     }
     switch (response->Function){
     case INVALID_CMD:
-	printf("\t\t\t[Erreur Commande Invalide]\n");
+	printf("[Erreur Commande Invalide]\n");
+	return -1;
 	break;
     case GET_ANALOG:
-	printf("\t\t\tA%1u[%3u]\n",request->Argument[0], *((short*)(response->Argument)));
+	printf("A%1u[%3u]\n",request->Argument[0], *((short*)(response->Argument)));
 	break;
     case SET_DIGITAL:
-	printf("\t\t\tD%1u[%3u]\n",request->Argument[0], response->Argument[0]);
+	printf("D%1u[%3u]\n",request->Argument[0], response->Argument[0]);
 	break;
     case GET_UID:
-	printf("\t\t\tUID[%1u]\n",response->Argument[0]);
+	printf("UID[%1u]\n",response->Argument[0]);
 	break;
     default:
-	printf("\t\t\t[Erreur Fonction Inconnue]\n");
+	printf("[Erreur Fonction Inconnue]\n");
+	return -1;
     }
     return 0;
 }
 
 
-int receiveCommand(command* cmd, int fdSerial){
+int receiveCommandSerial(command* cmd, int fdSerial){
     int n;
     if (DEBUG) printf("Start rcv %d bytes:\n",sizeof(command));
     n = rio_readn(fdSerial, cmd, sizeof(command));
@@ -180,7 +178,7 @@ int receiveCommand(command* cmd, int fdSerial){
 
 
 
-int sendCommand(command* cmd, int fdSerial){
+int sendCommandSerial(command* cmd, int fdSerial){
     int n;
     n = rio_writen(fdSerial, cmd, sizeof(command));
     if (DEBUG) printf("Send %d bytes:\t\t",n);
@@ -242,7 +240,7 @@ int openSerial(char* serialFile){
 
 
 void printCommand(command* cmd){
-    printf(" CMD: V[%1d] F[%1d] A0[%3d] A1[%3d]\n",cmd->Version, cmd->Function, cmd->Argument[0], cmd->Argument[1]);
+    printf("CMD: V[%1d] F[%1d] A0[%3d] A1[%3d]",cmd->Version, cmd->Function, cmd->Argument[0], cmd->Argument[1]);
 }
 
 // Assumes little endian
