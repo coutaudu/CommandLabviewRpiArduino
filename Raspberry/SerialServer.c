@@ -8,18 +8,21 @@
 
 struct sockaddr_in infosSocketClient;
 
+
 int main(){
     int fileDescriptorSerialPort1;
     // int fileDescriptorSerialPort2;
+    int fileDescriptorSerialLine[2];
     int socketUDP;
     command request, response;
     int exit;
 
-    // TODO Open + get EUI + affecte fd1 et fd2.
-    fileDescriptorSerialPort1 = openSerial(SERIAL_FILE_1);
-   //    fileDescriptorSerialPort2 = openSerial(SERIAL_FILE_2);    
-
     socketUDP = openUDP();
+    
+    initFileDescriptorSerialLine(fileDescriptorSerialLine);
+    fileDescriptorSerialPort1 = fileDescriptorSerialLine[0];
+    //    fileDescriptorSerialPort2 = fileDescriptorSerialLine[1];
+    
     exit = getCommandUDP(&request, socketUDP);
     while (!exit) {
 	sendCommand(&request, fileDescriptorSerialPort1);
@@ -32,6 +35,45 @@ int main(){
     close(fileDescriptorSerialPort1);
     if(LOG) printf("\tSerial closed by peer.\n");
     return 0;
+}
+
+void initFileDescriptorSerialLine(int* fd){
+    command request;
+    command response;
+    int fdTemp; 
+    unsigned char uidArduino;
+    
+    fdTemp = openSerial(SERIAL_FILE_1);
+
+    // sleep(2);
+    request.Version  = CURRENT_VERSION;
+    request.Function = GET_UID;
+    request.Argument[0] = 0;
+    request.Argument[1] = 0;
+    sendCommand(&request, fdTemp);
+    receiveCommand(&response, fdTemp);
+    uidArduino = response.Argument[0];
+    printf("\t\t\tUID[%1u]\n",response.Argument[0]);
+
+    // Filtre resultat par sureté
+    if (uidArduino>1) {
+	if (LOG) printf("UID Arduino non reconnu.\n");
+	exit(0);
+    }
+
+    fd[uidArduino] = fdTemp;
+    if (LOG) printf("\tArduino[%1u] -> fd[%1u]=<%1d>\n",uidArduino,uidArduino,fd[uidArduino]);
+    
+    /* fd[1] = openSerial(SERIAL_FILE_2); */
+    /* request.Version  = CURRENT_VERSION; */
+    /* request.Function = GET_UID; */
+    /* request.Argument[0] = 0; */
+    /* request.Argument[1] = 0; */
+    /* sendCommand(&request, fd[1]); */
+    /* receiveCommand(&response, fd[1]); */
+    /* printf("\t\t\tUID[%1u]\n",response.Argument[0]); */
+
+    
 }
 
 int sendResponseToClientUDP(command* cmd){
@@ -108,8 +150,10 @@ int openUDP(){
 
 }
 
-// TODO Renvoyer en UDP au client.
+
 int logCommand(command* request, command* response){
+    if(DEBUG) printf("logCommand: ");
+    if (DEBUG) printCommand(response);
     if (response->Version!=CURRENT_VERSION){
 	printf("\t\t\t[Erreur Version]\n");
 	return -1;
@@ -125,7 +169,7 @@ int logCommand(command* request, command* response){
 	printf("\t\t\tD%1u[%3u]\n",request->Argument[0], response->Argument[0]);
 	break;
     case GET_UID:
-	printf("\t\t\tUID[%1u]\n",request->Argument[0]);
+	printf("\t\t\tUID[%1u]\n",response->Argument[0]);
 	break;
     default:
 	printf("\t\t\t[Erreur Fonction Inconnue]\n");
@@ -143,6 +187,8 @@ int receiveCommand(command* cmd, int fdSerial){
     return n;
 }
 
+
+
 int sendCommand(command* cmd, int fdSerial){
     int n;
     n = rio_writen(fdSerial, cmd, sizeof(command));
@@ -151,9 +197,36 @@ int sendCommand(command* cmd, int fdSerial){
     return n;
 }
 
+int setSerialParameters(int fd){
+    struct termios term;
+    if(tcgetattr(fd, &term) != 0) {
+	printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+	return -1;
+    }
+    if (cfsetspeed(&term, B115200) != 0 ){
+	printf("Error %i from cfsetspeed: %s\n", errno, strerror(errno));
+	return -1;
+    }
+    // Explications disponibles ici: https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
+    term.c_cflag &= ~ ( PARENB | CSTOPB | CSIZE | CRTSCTS    );
+    term.c_cflag |= (CS8 | CREAD | CLOCAL) ;
+    term.c_iflag &= ~(IXON|IXOFF|IXANY|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL);
+    term.c_oflag &= ~ ( OPOST | ONLCR ); 
+    term.c_cc[VTIME] = 10;
+    term.c_cc[VMIN] = 0;
+    /****************************************************/
+    // cfmakeraw(&term); Serai potentiellemnt suffisant
+    /****************************************************/
+    if (tcsetattr(fd, TCSANOW, &term) != 0) {
+	printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+	return -1;
+    }
+    return 0;
+}
+
+    
 int openSerial(char* serialFile){
     int fileDescriptor;
-    struct termios term;
 
     if(LOG) printf("\n\tOpen Serial [%s]\n",serialFile);
     while ( (fileDescriptor = open(serialFile, O_RDWR,0))<0) {
@@ -162,32 +235,18 @@ int openSerial(char* serialFile){
 	if(LOG) printf("\t\tWill try again in %d seconds.\n",TEMPO_TRY_AGAIN_OPEN_SERIAL);
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
+
     if(LOG) printf("\tOpen Serial successful. FileDescriptor[%d]\n", fileDescriptor);
 
-    // Met en place les parametres série:
-    // Serial.begin(115200,SERIAL_8N1);
-    if(tcgetattr(fileDescriptor, &term) != 0) {
-	printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+    while (setSerialParameters(fileDescriptor)!=0){
+	printf("Error setting Serial Parameters.\n");
+	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
-
-
-    cfsetspeed(&term, B115200);
-    term.c_lflag &= ~ ( ECHO | ECHONL | ISIG | IEXTEN );
-    term.c_cflag &= ~ ( PARENB | CSTOPB | CSIZE | CRTSCTS | ICANON );
-    term.c_cflag |= CS8 | CREAD | CLOCAL;
-    // Disable any special handling of received bytes
-    term.c_iflag &= ~(IXON|IXOFF|IXANY|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); 
-    term.c_oflag &= ~ ( OPOST | ONLCR ); 
-    
-    // Une bonne partie pourrai être remplacé par:
-    // cfmakeraw(&term); 
-    
-    if (tcsetattr(fileDescriptor, TCSANOW, &term) != 0) {
-	printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
-    }
+	   
+    // TODO delai semble il requis  pour laisser le temps à la ligne de demarrer
+    // correctement, sinon le premier write est perdu...
+    //     sleep(2);
     if(LOG) printf("\n");
-
-    
     return fileDescriptor;
   
 }

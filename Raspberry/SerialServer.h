@@ -19,7 +19,7 @@
 #include "../Arduino/shared.h"
 
 #define LOG   TRUE
-#define DEBUG FALSE
+#define DEBUG TRUE
 #define SERIAL_FILE_1 "/dev/ttyACM0"
 #define SERIAL_FILE_2 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
@@ -50,3 +50,11 @@ void printCommand(command* cmd);
 
 // Traite la réponse
 int logCommand(command* request, command* response);
+
+// Init les 2 files discriptors pour la communication serie avec les 2 cartes arduino
+void initFileDescriptorSerialLine(int* fd);
+
+// Prepare les parametres de communications serie.
+// fd est le descripteur de fichier vers le pseudo fichier tty
+// Il doit être ouvert.
+int setSerialParameters(int fd);

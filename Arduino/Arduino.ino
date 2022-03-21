@@ -26,7 +26,7 @@ void setup() {
     initPWMPins();
     pinMode(LED_BUILTIN, OUTPUT);
 
-    //    setBoardUID(1);
+    //setBoardUID(1);
 }
 
 // Exécuté en boucle à l'infini.
@@ -55,7 +55,7 @@ int getBoardUID(){
     sendCommand(&cmd);
 
 
-    return 0  ;
+    return 0 ;
 }
 
 int getAnalogPin(unsigned char analogPinIndex){
@@ -171,7 +171,7 @@ unsigned char getNextUnsignedChar(){
     int in;
     
     while (Serial.available()<=0) {
-	blinkBuiltIn();
+	if ( EEPROM.read(EEPROM_UID_ADDRESS) == 0) blinkBuiltIn();
     }
     in =  Serial.read();
     return (unsigned char)in;
@@ -259,4 +259,5 @@ void initPWMPins(){
 
 int setBoardUID(unsigned char uid){
     EEPROM.update(EEPROM_UID_ADDRESS,uid);
+    return 0;
 }
