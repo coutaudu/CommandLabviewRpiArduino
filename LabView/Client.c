@@ -117,6 +117,7 @@ int initUDP(){
     // clear SerialServerAddress
     bzero(&SerialServerAddress, sizeof(SerialServerAddress));
     SerialServerAddress.sin_addr.s_addr = inet_addr("192.168.1.201");
+    //    SerialServerAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
     SerialServerAddress.sin_port = htons(PORT);
     SerialServerAddress.sin_family = AF_INET;
 

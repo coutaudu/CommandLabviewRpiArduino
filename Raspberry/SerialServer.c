@@ -6,26 +6,25 @@
 
 #include "SerialServer.h"
 
-struct sockaddr_in infosSocketClient;
-
-
 int main(){
     int fdSerials[2];
     int socketUDP;
     command request, response;
     int exit;
+    struct sockaddr_in infosClientUDP;
 
+    
     socketUDP = initUDP();
     initSerials(fdSerials);
 
     if(LOG) printf("\tReady: Wait for commands.\n");
-    exit = getCommandUDP(&request, socketUDP);
+    exit = getCommandUDP(&request, socketUDP, &infosClientUDP);
     while (!exit) {
 	sendCommandSerial(&request, fdSerials[0]);
 	receiveCommandSerial(&response, fdSerials[0]);
-	sendResponseUDP(&response);
+	sendResponseUDP(&response, socketUDP, &infosClientUDP);
 	if (LOG) logCommand(&request, &response);
-	exit = getCommandUDP(&request, socketUDP);
+	exit = getCommandUDP(&request, socketUDP, &infosClientUDP);
     };
 
     close(fdSerials[0]);
@@ -66,19 +65,14 @@ int initSerials(int* fd){
     return 0;    
 }
 
-// TODO cooriger: en l'etat repond TOUT LE TEMPS AU PREMIRE CLIENT
-int sendResponseUDP(command* cmd){
-    int sockfd;
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if(connect(sockfd, (struct sockaddr *)&infosSocketClient, sizeof(infosSocketClient)) < 0) {
-	printf("\n Error : Connect Failed \n");
-	exit(0);
+int sendResponseUDP(command* cmd, int socketfd, struct sockaddr_in* infosClientUDP){
+    if (sendto(socketfd, cmd, sizeof(cmd), 0,(const struct sockaddr*)infosClientUDP, sizeof(*infosClientUDP))<0){
+	perror("sento");
     }
-    send(sockfd, cmd, sizeof(command), 0);
     return 0;
 }
 
-int getCommandUDP(command* cmd, int socket){
+int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosClientUDP){
     int nbBytesReceived;
     socklen_t addrlen;
 
@@ -86,23 +80,17 @@ int getCommandUDP(command* cmd, int socket){
     if(DEBUG) fflush(stdout);
 
     // man: (...) addrlen is a value-result argument (...)
-    addrlen = sizeof(infosSocketClient); 
+    addrlen = sizeof(*infosClientUDP); 
     
     // Recevoir données. ! Appel bloquant ! 
-    if ((nbBytesReceived = recvfrom(socket,
-				    cmd,
-				    sizeof(command),
-				    0,
-				    (struct sockaddr *) &infosSocketClient,
-				    &addrlen))
-	== -1) {
+    if ((nbBytesReceived = recvfrom(socket, cmd, sizeof(cmd), 0, (struct sockaddr *)infosClientUDP, &addrlen)) == -1) {
 	perror("recvfrom()");
     }
 
     if (DEBUG) {
-	struct in_addr ipAddr = ((struct sockaddr_in*)&infosSocketClient)->sin_addr;
+	struct in_addr ipAddr = ((struct sockaddr_in*)infosClientUDP)->sin_addr;
 	char str[INET_ADDRSTRLEN];
-	printf("IPsrc[%s]:%d\n", inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN ),((struct sockaddr_in*)&infosSocketClient)->sin_port);
+	printf("IPsrc[%s]:%d\n", inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN ),((struct sockaddr_in*)infosClientUDP)->sin_port);
     }
 
     //    if(LOG) printf("Received Command From UDP.\n");

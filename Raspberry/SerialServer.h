@@ -43,10 +43,10 @@ int identifyArduinoOnSerial(int fdTemp, int* fd);
 int setSerialParameters(int fd);
 
 // UDP Interface
-int getCommandUDP(command* cmd, int socket);
+int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosSocketClient);
 
 // Envoie réponse de l'arduino a client source de la requete.
-int sendResponseUDP(command* cmd);
+int sendResponseUDP(command* cmd, int socket, struct sockaddr_in* infosSocketClient);
 
 // Envoie une commande sur la ligne série.
 // En binaire.
