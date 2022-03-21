@@ -47,8 +47,6 @@ void loop() {
 int getBoardUID(){
     command cmd;
 
-    blinkPin11();
-    cmd = getErrorCommand();
     cmd.Version = CURRENT_VERSION;
     cmd.Function = GET_UID;
     cmd.Argument[0] = (unsigned char) EEPROM.read(EEPROM_UID_ADDRESS);

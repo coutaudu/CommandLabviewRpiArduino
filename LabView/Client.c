@@ -4,22 +4,26 @@
 /* 2022		  */
 /******************/
 #include "Client.h"
-  
+
+struct sockaddr_in SerialServerAddress;
+
 // Driver code
 int main() {   
     int sockfd;
     command cmd;
     int exit;
-
+    socklen_t len;
+    
     sockfd = initUDP();
 	
     exit = getCommandCLI(&cmd);
     while (!exit) {
-	send(sockfd, &cmd, sizeof(command), 0);
+	sendto(sockfd, &cmd, sizeof(command), 0,(const struct sockaddr*)&SerialServerAddress, sizeof(SerialServerAddress));
+	recvfrom(sockfd, &cmd, sizeof(command), 0, (struct sockaddr*)&SerialServerAddress,&len);
+	printCommand(&cmd);
 	exit = getCommandCLI(&cmd);
     };
      
-    // close the descriptor
     close(sockfd);
 }
 
@@ -106,23 +110,27 @@ int commandGetAnalog(command* cmd){
 
 
 int initUDP(){
-    struct sockaddr_in servaddr;
+    // struct sockaddr_in SerialServerAddress;
+    //    struct sockaddr_in ClientAddr;
     int sockfd;
     
-    // clear servaddr
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(PORT);
-    servaddr.sin_family = AF_INET;
-      
+    // clear SerialServerAddress
+    bzero(&SerialServerAddress, sizeof(SerialServerAddress));
+    SerialServerAddress.sin_addr.s_addr = inet_addr("192.168.1.201");
+    SerialServerAddress.sin_port = htons(PORT);
+    SerialServerAddress.sin_family = AF_INET;
+
     // create datagram socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-      
-    // connect to server
-    if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-	printf("\n Error : Connect Failed \n");
-	exit(0);
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+	perror("socket");
+	return -1;
     }
 
+
     return sockfd;
+}
+
+
+void printCommand(command* cmd){
+    printf(" CMD: V[%1d] F[%1d] A0[%3d] A1[%3d]\n",cmd->Version, cmd->Function, cmd->Argument[0], cmd->Argument[1]);
 }

@@ -19,7 +19,7 @@
 #include "../Arduino/shared.h"
 
 #define LOG   TRUE
-#define DEBUG TRUE
+#define DEBUG FALSE
 #define SERIAL_FILE_1 "/dev/ttyACM0"
 #define SERIAL_FILE_2 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
@@ -39,6 +39,9 @@ int getCommandUDP(command* cmd, int socket);
 // En binaire.
 int sendCommand(command* cmd, int fdDestination);
 
+// Envoie réponse de l'arduino a client source de la requete.
+int sendResponseToClientUDP(command* cmd);
+
 // Reçoit une commande (une réponse donc)) sur la ligne série.
 // En binaire.
 int receiveCommand(command* cmd, int fdSerial);
@@ -46,4 +49,4 @@ int receiveCommand(command* cmd, int fdSerial);
 void printCommand(command* cmd);
 
 // Traite la réponse
-int handleCommand(command* request, command* response);
+int logCommand(command* request, command* response);

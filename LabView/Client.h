@@ -32,6 +32,6 @@ int commandGetUID(command* cmd);
 
 /**********/
 
-
+void printCommand(command* cmd);
 
 int initUDP();

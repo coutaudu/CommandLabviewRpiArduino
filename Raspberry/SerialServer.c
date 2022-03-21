@@ -6,6 +6,8 @@
 
 #include "SerialServer.h"
 
+struct sockaddr_in infosSocketClient;
+
 int main(){
     int fileDescriptorSerialPort1;
     // int fileDescriptorSerialPort2;
@@ -19,13 +21,12 @@ int main(){
 
     socketUDP = openUDP();
     exit = getCommandUDP(&request, socketUDP);
-    //    exit = getCommandCLI(&request);
     while (!exit) {
 	sendCommand(&request, fileDescriptorSerialPort1);
 	receiveCommand(&response, fileDescriptorSerialPort1);
-	handleCommand(&request, &response);
+	sendResponseToClientUDP(&response);
+	if (LOG) logCommand(&request, &response);
 	exit = getCommandUDP(&request, socketUDP);
-	// exit = getCommandCLI(&request);
     };
 
     close(fileDescriptorSerialPort1);
@@ -33,10 +34,20 @@ int main(){
     return 0;
 }
 
+int sendResponseToClientUDP(command* cmd){
+    int sockfd;
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(connect(sockfd, (struct sockaddr *)&infosSocketClient, sizeof(infosSocketClient)) < 0) {
+	printf("\n Error : Connect Failed \n");
+	exit(0);
+    }
+    send(sockfd, cmd, sizeof(command), 0);
+    return 0;
+}
+
 int getCommandUDP(command* cmd, int socket){
     int nbBytesReceived;
     socklen_t addrlen;
-    struct sockaddr_in infosSocketClient;
 
     if(DEBUG) printf("Get Command From UDP:\t");
     if(DEBUG) fflush(stdout);
@@ -54,10 +65,17 @@ int getCommandUDP(command* cmd, int socket){
 	== -1) {
 	perror("recvfrom()");
     }
+
+    if (DEBUG) {
+	struct in_addr ipAddr = ((struct sockaddr_in*)&infosSocketClient)->sin_addr;
+	char str[INET_ADDRSTRLEN];
+	printf("IPsrc[%s]:%d\n", inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN ),((struct sockaddr_in*)&infosSocketClient)->sin_port);
+    }
+
     //    if(LOG) printf("Received Command From UDP.\n");
     if(LOG) printCommand(cmd);
     
-    return 0;
+    return ( cmd->Version != CURRENT_VERSION );
 }
 
 int openUDP(){
@@ -91,7 +109,7 @@ int openUDP(){
 }
 
 // TODO Renvoyer en UDP au client.
-int handleCommand(command* request, command* response){
+int logCommand(command* request, command* response){
     if (response->Version!=CURRENT_VERSION){
 	printf("\t\t\t[Erreur Version]\n");
 	return -1;
