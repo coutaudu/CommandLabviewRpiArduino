@@ -55,6 +55,8 @@ int sendResponseUDP(command* cmd, int socket, struct sockaddr_in* infosSocketCli
 // Recoit la reponse
 int transmitCommandSerial(command* request, command* response, int* fdSerials);
 
+int commandIsRoutable( command* cmd);
+int routeCommand(command* cmd, int* fdSerials);
 
 // Envoie une commande sur la ligne série.
 // En binaire.

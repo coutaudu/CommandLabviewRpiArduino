@@ -32,9 +32,55 @@ int main(){
     return 0;
 }
 
+int commandIsRoutable( command* cmd){
+    int retval;
+    printCommand(cmd);
+    if ( cmd->Version == CURRENT_VERSION ) {
+	 if ( cmd->Function == GET_ANALOG || cmd->Function == SET_DIGITAL ) {
+	     retval = 0;
+	 }else{
+	     retval = -1;
+	 }
+    }else{
+	retval = -2;
+    }
+    return retval;
+}
+
+int routeCommand(command* cmd, int* fdSerials){
+    int retval;
+    unsigned char destinationPin;
+    destinationPin = cmd->Argument[0];
+    if ( destinationPin < 6 ) {
+	cmd->Argument[0] -= 0;
+	retval = fdSerials[0];
+    } else if ( destinationPin < 12 ){
+	cmd->Argument[0] -= 6;
+    	retval = fdSerials[1];
+    }else{
+	retval = -1;
+    }
+    return retval;
+}
+
 int transmitCommandSerial(command* request, command* response, int* fdSerials){
-    sendCommandSerial(request, fdSerials[0]);
-    receiveCommandSerial(response, fdSerials[0]);
+    int fdTmp;
+    if ( commandIsRoutable(request) < 0){
+	printf("Command is not routable.\n");
+	return -1;
+    }
+    if ( (fdTmp = routeCommand(request, fdSerials)) < 0 ){
+	printf("Pin is not unknown.\n");
+	return -1;
+    }
+    if ( sendCommandSerial(request, fdTmp) < 0 ){
+	printf("Failed to send request command.\n");
+	return -1;
+    }
+    if ( receiveCommandSerial(response, fdTmp) < 0 ){
+	printf("Failed to send response command.\n");
+	return -1;
+    }
     return 0; 
 }
 
@@ -253,8 +299,6 @@ void printBits(size_t const size, void const * const ptr)
     }
     puts("");
 }
-
-
 
 command requestUidCommand(){
     command cmd;
