@@ -37,7 +37,7 @@ run_service: install_service
 	systemctl start SerialServer
 
 auto_run_service:
-	systemctl enable rot13
+	systemctl enable SerialServer
 
 clean:
 	rm -f $(PROGS) *.o output.txt
