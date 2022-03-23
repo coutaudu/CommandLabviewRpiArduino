@@ -31,4 +31,4 @@ all: $(PROGS)
 #	$(CC) -o $@ $(LDFLAGS) $(LIBS) $^
 
 clean:
-	rm -f $(PROGS) *.o output.txt
+	rm -f $(PROGS) *.o output.txt *~

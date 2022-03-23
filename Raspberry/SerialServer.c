@@ -216,7 +216,7 @@ int logCommand(command* request, command* response){
 
 int receiveCommandSerial(command* cmd, int fdSerial){
     int n;
-    if (DEBUG) printf("Start rcv %lu bytes:\n", sizeof(command));
+    if (DEBUG) printf("Start rcv %lu bytes:\n", (long unsigned)sizeof(command));
     n = rio_readn(fdSerial, cmd, sizeof(command));
     if (DEBUG) printf("Rcvd %d bytes:\t\t",n);
     if (DEBUG) printCommand(cmd);
