@@ -40,4 +40,4 @@ auto_run_service:
 	systemctl enable SerialServer
 
 clean:
-	rm -f $(PROGS) *.o output.txt
+	rm -f $(PROGS) *.o output.txt *~
