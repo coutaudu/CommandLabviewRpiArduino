@@ -15,11 +15,11 @@ LDFLAGS =
 #LIBS += -lsocket -lnsl -lrt
 LIBS += -lpthread
 
-INCLUDE = ./csapp.h
-OBJS = ./csapp.o
+INCLUDE = 
+OBJS = 
 INCLDIR = -I.
 
-PROGS = SerialServer
+PROGS = Client
 
 all: $(PROGS)
 
@@ -29,15 +29,6 @@ all: $(PROGS)
 %: %.o $(OBJS)
 	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
 #	$(CC) -o $@ $(LDFLAGS) $(LIBS) $^
-
-install_service: SerialServer.conf
-	sudo cp SerialServer.conf /etc/systemd/system/SerialServer.service
-
-run_service: install_service
-	systemctl start SerialServer
-
-auto_run_service:
-	systemctl enable rot13
 
 clean:
 	rm -f $(PROGS) *.o output.txt

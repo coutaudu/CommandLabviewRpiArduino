@@ -4,6 +4,10 @@
 /* 2022		  */
 /******************/
 
+#include <EEPROM.h>
+
+// Arduino Uno EEPROM de 0 à 512 
+#define EEPROM_UID_ADDRESS 0
 
 // Lit l'octet suivant sur la ligne série.
 unsigned char getNextUnsignedChar();
@@ -38,4 +42,16 @@ command getErrorCommand();
 
 // Initialise la connexion serie;
 void initSerial();
+
+void initPWMPins();
+
+// Traduit une addresse de Pin PWM symbolique en son addresse réelle.
+int addressPWMPin(unsigned char indexPWMPin);
+
+// Initialise l'ID unique de la board.
+// Attention !! On grave la valeur dans l'eeprom.
+// L'eeprom s'use à chaque écriture (environ 100 000 max)
+int setBoardUID(unsigned char uid);
+
+int getBoardUID();
 
