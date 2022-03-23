@@ -19,7 +19,7 @@
 #include "../Arduino/shared.h"
 
 #define LOG   TRUE
-#define DEBUG FALSE
+#define DEBUG TRUE
 #define SERIAL_FILE_0 "/dev/ttyACM0"
 #define SERIAL_FILE_1 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
@@ -73,3 +73,6 @@ int logCommand(command* request, command* response);
 
 // Genere et retourne la commande pour interroger l'arduino sur sont uid.
 command requestUidCommand();
+
+// Genere et retourne la commande d'erreur.
+command errorCommand();
