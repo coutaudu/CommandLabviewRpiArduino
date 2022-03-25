@@ -69,7 +69,7 @@ int commandSetDigitalPWM(command* cmd){
     char pin;
     unsigned char value;
 
-    printf("\t[2]\tWhich Pin ? [0-5]\n");
+    printf("\t[2]\tWhich Pin ? [0-11]\n");
     scanf(" %c",&pin);
     printf("\t[2]\tValue ? [0-255]\n");
     scanf(" %hhu",&value);
@@ -100,7 +100,7 @@ int commandGetAnalog(command* cmd){
     
     cmd->Version  = CURRENT_VERSION;
     cmd->Function = GET_ANALOG;
-    printf("\t[1]\tWhich Pin ? [0-5]\n");
+    printf("\t[1]\tWhich Pin ? [0-11]\n");
     scanf(" %c",&entry);
     cmd->Argument[0] = entry - '0';
     //    printf("[%d]\n",(int)(cmd->Argument[0]));

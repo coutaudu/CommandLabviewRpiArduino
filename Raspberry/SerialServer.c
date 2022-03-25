@@ -10,7 +10,6 @@ int main(){
     int fdSerials[2];
     int socketUDP;
     command request, response;
-    int exit;
     struct sockaddr_in infosClientUDP;
 
     
@@ -18,12 +17,15 @@ int main(){
     initSerials(fdSerials);
 
     if(LOG) printf("\tReady: Wait for commands.\n");
-    exit = getCommandUDP(&request, socketUDP, &infosClientUDP);
-    while (!exit) {
-	transmitCommandSerial(&request, &response, fdSerials );
-	sendResponseUDP(&response, socketUDP, &infosClientUDP);
-	if (LOG) logCommand(&request, &response);
-	exit = getCommandUDP(&request, socketUDP, &infosClientUDP);
+    while (TRUE) {
+	if ( getCommandUDP(&request, socketUDP, &infosClientUDP) < 0){
+	    if (LOG) printf(" Received command is invalid.\n");
+	    response = errorCommand();
+	} else {
+	    transmitCommandSerial(&request, &response, fdSerials );
+	    if (LOG) logCommand(&request, &response);
+	}
+	sendResponseUDP(&response, socketUDP, &infosClientUDP);	
     };
 
     close(fdSerials[0]);
@@ -128,7 +130,7 @@ int sendResponseUDP(command* cmd, int socketfd, struct sockaddr_in* infosClientU
 int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosClientUDP){
     int nbBytesReceived;
     socklen_t addrlen;
-
+    
     if(DEBUG) printf("Get Command From UDP:\t");
     if(DEBUG) fflush(stdout);
 
@@ -138,6 +140,7 @@ int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosClientUDP){
     // Recevoir données. ! Appel bloquant ! 
     if ((nbBytesReceived = recvfrom(socket, cmd, sizeof(cmd), 0, (struct sockaddr *)infosClientUDP, &addrlen)) == -1) {
 	perror("recvfrom()");
+	return -2;
     }
 
     if (DEBUG) {
@@ -147,8 +150,11 @@ int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosClientUDP){
     }
 
     //    if(LOG) printf("Received Command From UDP.\n");
-    
-    return ( cmd->Version != CURRENT_VERSION );
+    if ( cmd->Version != CURRENT_VERSION ){
+	return -1;
+    }
+
+    return 0;
 }
 
 int initUDP(){
@@ -210,7 +216,7 @@ int logCommand(command* request, command* response){
 
 int receiveCommandSerial(command* cmd, int fdSerial){
     int n;
-    if (DEBUG) printf("Start rcv %d bytes:\n",sizeof(command));
+    if (DEBUG) printf("Start rcv %lu bytes:\n", (long unsigned)sizeof(command));
     n = rio_readn(fdSerial, cmd, sizeof(command));
     if (DEBUG) printf("Rcvd %d bytes:\t\t",n);
     if (DEBUG) printCommand(cmd);
@@ -306,5 +312,15 @@ command requestUidCommand(){
     cmd.Function = GET_UID;
     cmd.Argument[0] = 0;
     cmd.Argument[1] = 0;
+    return cmd;
+}
+
+command errorCommand(){
+    command cmd;
+    cmd.Version  = CURRENT_VERSION;
+    cmd.Function = 0;
+    cmd.Argument[0] = 0;
+    cmd.Argument[1] = 0;
+
     return cmd;
 }
