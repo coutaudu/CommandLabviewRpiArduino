@@ -9,3 +9,4 @@ SerialServer
 Client
 *.svd
 *.o
+/portsRedir.txt
