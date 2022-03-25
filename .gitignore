@@ -10,3 +10,6 @@ Client
 *.svd
 *.o
 /portsRedir.txt
+/LabView/builds/
+/LabView/Client.aliases
+/LabView/Client.lvlps
