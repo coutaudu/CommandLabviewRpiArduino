@@ -15,8 +15,8 @@
 		</Item>
 		<Item Name="ClientGUIBasique.vi" Type="VI" URL="../ClientGUIBasique.vi"/>
 		<Item Name="ClientGUIGraph.vi" Type="VI" URL="../ClientGUIGraph.vi"/>
+		<Item Name="ClientGUIMonitorAllAnalog.vi" Type="VI" URL="../ClientGUIMonitorAllAnalog.vi"/>
 		<Item Name="ClientGUIMonitorAnalog.vi" Type="VI" URL="../ClientGUIMonitorAnalog.vi"/>
-		<Item Name="commandRead.vi" Type="VI" URL="../commandRead.vi"/>
 		<Item Name="Dépendances" Type="Dependencies">
 			<Item Name="vi.lib" Type="Folder">
 				<Item Name="BuildHelpPath.vi" Type="VI" URL="/&lt;vilib&gt;/Utility/error.llb/BuildHelpPath.vi"/>
