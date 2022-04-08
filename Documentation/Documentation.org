@@ -1,0 +1,19 @@
+#+TITLE:Documentation Projet Pont IP-Serie pour boucle d'asservissement. 
+#+AUTHOR:COUTAUD Ulysse
+#+DATE:<2022-04-08 Fri>
+# #+LATEX_HEADER:\usepackage[margin=0.7in]{geometry}
+#+LATEX: \newpage
+
+* Intro
+  
+* Architecture matérielle
+
+* Architecture réseau
+
+* Architecture logicielle  
+  
+* Protocole
+
+* Guide d'utilisation
+
+* Guide de déploiment
