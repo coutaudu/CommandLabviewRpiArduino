@@ -5,13 +5,22 @@
 #+LATEX: \newpage
 
 * Intro
+
+* Améliorations
++ [ ] Restructuration et nettoyage du code.
++ [ ]   
   
 * Architecture matérielle
 
 * Architecture réseau
+** Contrôleurs
+
+** Serveur
+
+** Clients
 
 * Architecture logicielle  
-  
+   
 * Protocole
 
 * Guide d'utilisation
