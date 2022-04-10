@@ -8,8 +8,13 @@
 
 * Améliorations
 + [ ] Restructuration et nettoyage du code.
-+ [ ]   
-  
++ [ ] Log rotatifs.
++ [ ] Passage des arguments du serveur en ligne de commande.
++ [ ] Passage des arguments du serveur en fichier etc/xml/json/csv.
++ [ ] Installer serveur smb sur serveur pour accès au fichier de configuration
++ [ ] Mesures des temps d'execution.
++ [ ] Documentation.
+    
 * Architecture matérielle
 
 * Architecture réseau
