@@ -70,11 +70,11 @@ int routeCommand(command* cmd, int* fdSerials){
 
     if (retval == -1) {
 	    time_t t = time(NULL);
-	    dprintf(LOG_FILE_FD,"[%s]\t[ERROR] Arduino [%d] not connected.\n", ctime(&t), destinationArduinoUid);
+	    dprintf(LOG_FILE_FD,"[%.19s]\t[ERROR] Arduino [%d] not connected.\n", ctime(&t), destinationArduinoUid);
     }
     if (retval == -2) {
 	    time_t t = time(NULL);
-	    dprintf(LOG_FILE_FD,"[%s]\t[ERROR] Pin [%d] not routable.\n", ctime(&t), destinationPin);
+	    dprintf(LOG_FILE_FD,"[%.19s]\t[ERROR] Pin [%d] not routable.\n", ctime(&t), destinationPin);
     }
     
     return retval;
@@ -288,7 +288,8 @@ int initLog(char* filename){
     LOG_FILE_FD = fileDescriptor;
 
     time_t t = time(NULL);
-    dprintf(LOG_FILE_FD,"[%s]\tSerialServer start.\n",ctime(&t));
+    struct tm *tm = localtime(&t);
+    dprintf(LOG_FILE_FD,"[%.19s]\tSerialServer start.\n",asctime(tm));
 
     return 0;
 }
