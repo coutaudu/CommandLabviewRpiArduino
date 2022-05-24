@@ -12,29 +12,31 @@ int main(){
     command request, response;
     struct sockaddr_in infosClientUDP;
 
+
+    initLog("/tmp/SerialServer.log");
     
     socketUDP = initUDP();
     initSerials(fdSerials);
 
-    if(LOG) printf("\tReady: Wait for commands.\n");
+    if(TRACE) printf("\tReady: Wait for commands.\n");
     while (TRUE) {
 	if ( getCommandUDP(&request, socketUDP, &infosClientUDP) < 0){
-	    if (LOG) printf(" Received command is invalid.\n");
+	    if (TRACE) printf(" Received command is invalid.\n");
 	    response = errorCommand();
 	} else {
 	    transmitCommandSerial(&request, &response, fdSerials );
-	    if (LOG) logCommand(&request, &response);
+	    if (TRACE) logCommand(&request, &response);
 	}
 	sendResponseUDP(&response, socketUDP, &infosClientUDP);	
     };
 
     close(fdSerials[0]);
     close(fdSerials[1]);
-    if(LOG) printf("\tSerial closed by peer.\n");
+    if(TRACE) printf("\tSerial closed by peer.\n");
     return 0;
 }
 
-int commandIsRoutable( command* cmd){
+int commandIsValid( command* cmd){
     int retval;
     printCommand(cmd);
     if ( cmd->Version == CURRENT_VERSION ) {
@@ -52,27 +54,40 @@ int commandIsRoutable( command* cmd){
 int routeCommand(command* cmd, int* fdSerials){
     int retval;
     unsigned char destinationPin;
+    int destinationArduinoUid = -1;
     destinationPin = cmd->Argument[0];
     if ( destinationPin < 6 ) {
 	cmd->Argument[0] -= 0;
-	retval = fdSerials[0];
+	destinationArduinoUid = 0;
+	retval = fdSerials[destinationArduinoUid];
     } else if ( destinationPin < 12 ){
 	cmd->Argument[0] -= 6;
-    	retval = fdSerials[1];
+	destinationArduinoUid = 1;
+	retval = fdSerials[destinationArduinoUid];
     }else{
-	retval = -1;
+	retval = -2;
     }
+
+    if (retval == -1) {
+	    time_t t = time(NULL);
+	    dprintf(LOG_FILE_FD,"[%s]\t[ERROR] Arduino [%d] not connected.\n", ctime(&t), destinationArduinoUid);
+    }
+    if (retval == -2) {
+	    time_t t = time(NULL);
+	    dprintf(LOG_FILE_FD,"[%s]\t[ERROR] Pin [%d] not routable.\n", ctime(&t), destinationPin);
+    }
+    
     return retval;
 }
 
 int transmitCommandSerial(command* request, command* response, int* fdSerials){
     int fdTmp;
-    if ( commandIsRoutable(request) < 0){
-	printf("Command is not routable.\n");
+    if ( commandIsValid(request) < 0){
+	printf("Command is not valid.\n");
 	return -1;
     }
     if ( (fdTmp = routeCommand(request, fdSerials)) < 0 ){
-	printf("Pin is not unknown.\n");
+	printf("Pin is not known.\n");
 	return -1;
     }
     if ( sendCommandSerial(request, fdTmp) < 0 ){
@@ -99,11 +114,11 @@ int identifyArduinoOnSerial(int fdTemp, int* fd){
     uidArduino = response.Argument[0];
     // Filtre resultat par sureté: id affectés 0 et 1.
     if (uidArduino>1) {
-	if (LOG) printf("UID Arduino non reconnu.\n");
+	if (TRACE) printf("UID Arduino non reconnu.\n");
 	return -1;
     }
     fd[uidArduino] = fdTemp;
-    if (LOG) printf("\t\tArduino[%1u] <-> fd<%1u>\n",uidArduino,fd[uidArduino]);
+    if (TRACE) printf("\t\tArduino[%1u] <-> fd<%1u>\n",uidArduino,fd[uidArduino]);
 
     return 0;
 }
@@ -116,7 +131,7 @@ int initSerials(int* fd){
     fdTemp = openSerial(SERIAL_FILE_1);
     identifyArduinoOnSerial(fdTemp,fd);
 
-    if(LOG) printf("\n");
+    if(TRACE) printf("\n");
     return 0;    
 }
 
@@ -149,7 +164,7 @@ int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosClientUDP){
 	printf("IPsrc[%s]:%d\n", inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN ),((struct sockaddr_in*)infosClientUDP)->sin_port);
     }
 
-    //    if(LOG) printf("Received Command From UDP.\n");
+    //    if(TRACE) printf("Received Command From UDP.\n");
     if ( cmd->Version != CURRENT_VERSION ){
 	return -1;
     }
@@ -161,12 +176,12 @@ int initUDP(){
     struct sockaddr_in infosSocketServer;
     int socketReceptionUDP;
 
-    if(LOG) printf("\tOpen UDP Port[%5d]\n",PORT);
+    if(TRACE) printf("\tOpen UDP Port[%5d]\n",PORT);
     if ((socketReceptionUDP=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 	perror("socket");
 	return -1;
     }
-    if(LOG) printf("\t\tSocket Creation Successful. Socket[%1d]\n",socketReceptionUDP);
+    if(TRACE) printf("\t\tSocket Creation Successful. Socket[%1d]\n",socketReceptionUDP);
     
     // Vide les structures.
     memset((char *) &infosSocketServer, 0, sizeof(infosSocketServer));	
@@ -179,7 +194,7 @@ int initUDP(){
 	perror("bind");
 	return -1;
     }
-    if(LOG) printf("\t\tSocket Bind Successful.\n\n");
+    if(TRACE) printf("\t\tSocket Bind Successful.\n\n");
     return socketReceptionUDP;
 }
 
@@ -261,25 +276,45 @@ int setSerialParameters(int fd){
     return 0;
 }
 
+int initLog(char* filename){
+
+    
+    int fileDescriptor = -1;
+    while ( (fileDescriptor = open(filename, O_RDWR | O_APPEND | O_CREAT , 00644))<0) {
+	if(TRACE) printf("\t\tOpen[%s] Failed. Returned FileDescriptor [%d].\n", filename, fileDescriptor);
+	if(TRACE) printf("\t\t[%s]\n", strerror(errno));
+	sleep (1);
+    }
+    LOG_FILE_FD = fileDescriptor;
+
+    time_t t = time(NULL);
+    dprintf(LOG_FILE_FD,"[%s]\tSerialServer start.\n",ctime(&t));
+
+    return 0;
+}
+
     
 int openSerial(char* serialFile){
-    int fileDescriptor;
-
-    if(LOG) printf("\n\tOpen Serial [%s]\n",serialFile);
-    while ( (fileDescriptor = open(serialFile, O_RDWR,0))<0) {
-	if(LOG) printf("\t\tFailed. Returned FileDescriptor [%d].\n", fileDescriptor);
-	if(LOG) printf("\t\t[%s]\n", strerror(errno));
-	if(LOG) printf("\t\tWill try again in %d seconds.\n",TEMPO_TRY_AGAIN_OPEN_SERIAL);
+    int fileDescriptor = -1;
+    int tryAgainCounter = 0;
+    
+    if(TRACE) printf("\n\tOpen Serial [%s]\n",serialFile);
+    while ( (fileDescriptor = open(serialFile, O_RDWR, 0))<0
+	    && tryAgainCounter < NB_MAX_TRY_AGAIN_OPEN_SERIAL) {
+	if(TRACE) printf("\t\tFailed. Returned FileDescriptor [%d].\n", fileDescriptor);
+	if(TRACE) printf("\t\t[%s]\n", strerror(errno));
+	if(TRACE) printf("\t\tWill try again in %d seconds.\n",TEMPO_TRY_AGAIN_OPEN_SERIAL);
+	tryAgainCounter++;
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
-    if(LOG) printf("\t\tOpen Serial successful. FileDescriptor[%d]\n", fileDescriptor);
+    if(TRACE) printf("\t\tOpen Serial successful. FileDescriptor[%d]\n", fileDescriptor);
 
     while (setSerialParameters(fileDescriptor)!=0){
 	printf("Error setting Serial Parameters.\n");
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
 	   
-    // TODO delai semble il requis  pour laisser le temps à la ligne de demarrer
+    // TODO ce délai semble nécessaire pour laisser le temps à la ligne de demarrer
     // correctement, sinon le premier write est perdu...
     sleep(3);
     return fileDescriptor;
