@@ -32,12 +32,21 @@ all: $(PROGS)
 
 install_service: SerialServer.conf
 	sudo cp SerialServer.conf /etc/systemd/system/SerialServer.service
+	sudo cp ./SerialServer /bin/SerialServer
 
 run_service: install_service
 	systemctl start SerialServer
+	systemctl daemon-reload
 
 auto_run_service:
 	systemctl enable SerialServer
+
+stop_service:
+	systemctl stop  SerialServer
+
+disable_service:
+	systemctl disable SerialServer
+
 
 clean:
 	rm -f $(PROGS) *.o output.txt *~
