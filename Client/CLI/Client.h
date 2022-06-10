@@ -14,7 +14,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#include "../Arduino/shared.h"
+#include "../../Arduino/shared.h"
 
 /**********/
 // Command Line Interface
