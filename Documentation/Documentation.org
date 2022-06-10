@@ -6,6 +6,8 @@
 
 * Intro
 
+* Installation
+  
 * Améliorations
 + [ ] Restructuration et nettoyage du code.
 + [ ] Log rotatifs.
@@ -14,19 +16,24 @@
 + [ ] Installer serveur smb sur serveur pour accès au fichier de configuration
 + [ ] Mesures des temps d'execution.
 + [ ] Documentation.
-    
-* Architecture matérielle
 
-* Architecture réseau
-** Contrôleurs
-
-** Serveur
-
-** Clients
+  
+* Architecture
+** Matérielle  
+[[./Figures/Montage.pdf]]
+** Architecture réseau
++ Les clients communiquent avec le serveur en UDP/IP.
++ Le serveur communique avec les micro-contrôleurs en USB.
++ Le protocole applicatif [TODO NOM DE PROTOCOLE] est un développement spécifique au projet.
+  Le protocole est décrit en section [[SectionProtocole]].
++ Le serveur fait :
+  + Pont UDP<->USB.
+  + Routage N°Pin<->UID micro-contrôleur.  
 
 * Architecture logicielle  
-   
-* Protocole
+
+  
+* Protocole <<SectionProtocole>>
 
 * Guide d'utilisation
 
