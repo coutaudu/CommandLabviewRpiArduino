@@ -7,7 +7,45 @@
 * Intro
 
 * Installation
-  
+** Installation de l'environnement  
+*** Télécharger le projet 
+**** En ligne de commande:
++ Télécharger le dépot git (permet d'avoir les mise à jour via simple "git pull":
+  + Soit : git clone https://github.com/coutaudu/CommandLabviewRpiArduino.git
+  + [???] Soit : git clone ssh://github.com/coutaudu/CommandLabviewRpiArduino.git
++ Télécharger juste les sources:
+  + wget https://github.com/coutaudu/CommandLabviewRpiArduino/archive/refs/heads/main.zip
++ Si besoin: 
+  + sudo apt-get install git
+  + sudo apt-get install wget
+
+**** Via un navigateur web:
++ Page  [[https://github.com/coutaudu/CommandLabviewRpiArduino]]
+
+*** Installer le projet
+**** Les micro-contrôleurs
+***** Flasher un UID sur chacun des micro-contrôleurs du système
++ 
+
+***** Flasher le firmware sur chacun des micro-contrôleurs du système
+
+**** Le serveur
++ Installer l'environnement
++ Compiler le code du serveur
++ Installer le service
+
+**** Les clients
+***** Client CLI
++ Configurer IP et port destination (du serveur donc).
++ Compiler
++ Executer
+
+***** Clients Labview
++ Installer Labview 21.
++ Ouvrir le projet.
++ Choisir le programme d'exemple souhaité.
++ Executer.
+
 * Améliorations
 + [ ] Restructuration et nettoyage du code.
 + [ ] Log rotatifs.
