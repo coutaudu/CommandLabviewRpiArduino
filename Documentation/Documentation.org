@@ -5,7 +5,12 @@
 #+LATEX: \newpage
 
 * Intro
-
++ Le système présenté dans ce document est l'interface de communication pour l'asservissement en température d'un parc de bac d'eau:
+  [[./Figures/StructureAsservissement.pdf]]
++ Le système permet au /Client/ :
+  + D'envoyer des requêtes pour déclencher une lecture de la valeur d'un capteur, et de recevoir la valeur lue.
+  + D'envoyer des requêtes pour inscrire une valeur de commande sur un actionneur.
+    
 * Installation
 ** Installation de l'environnement  
 *** Télécharger le projet 
@@ -25,10 +30,26 @@
 *** Installer le projet
 **** Les micro-contrôleurs
 ***** Flasher un UID sur chacun des micro-contrôleurs du système
-+ 
++ Il est IMPERATIF d'inscrire un UID dans chacun des micro-contrôleurs utilisés dans le système (nécessaire pour la détection puis la redirection des requêtes vers le bon micro-contrôleur).
++ Pour cela il faut utiliser la fonction /int setBoardUID(unsigned char uid);/:
+  + Décommenter la ligne dans la fonction /setup/ en inscrivant l'UID voulu.
+  + Compiler puis flasher le micro-contrôleur. L'UID a été gravé dans l'EEPROM.
+  + Recommenter la ligne, compiler et flasher pour ne pas re-graver l'UID par la suite.
 
 ***** Flasher le firmware sur chacun des micro-contrôleurs du système
-
++ Le firmware doit être flashé sur chacun des micros contrôleurs.
+  + Testé avec Arduino IDE 1.8.19.
+  + Carte Arduino AVR Board > Arduino UNO.
+  + Utilise librairie "EEPROM.h" (built-in).
++ Les micro-controleurs sont branchés en USB.
+  + Une fois branché, le Serveur doit les détecter: //dev/ttyACM0/ et //dev/ttyACM0/.
+  + Les paramêtres de communication série sont:
+    + 115200 bauds
+    + 8 bits de données
+    + 0 bits de parité
+    + 1 bit de stop
+    + binaire nu (toutes les valeurs de contrôles soft, telles que XonXoff sont désactivées).
+      
 **** Le serveur
 + Installer l'environnement
 + Compiler le code du serveur
@@ -46,15 +67,6 @@
 + Choisir le programme d'exemple souhaité.
 + Executer.
 
-* Améliorations
-+ [ ] Restructuration et nettoyage du code.
-+ [ ] Log rotatifs.
-+ [ ] Passage des arguments du serveur en ligne de commande.
-+ [ ] Passage des arguments du serveur en fichier etc/xml/json/csv.
-+ [ ] Installer serveur smb sur serveur pour accès au fichier de configuration
-+ [ ] Mesures des temps d'execution.
-+ [ ] Documentation.
-
   
 * Architecture
 ** Matérielle  
@@ -68,11 +80,27 @@
   + Pont UDP<->USB.
   + Routage N°Pin<->UID micro-contrôleur.  
 
-* Architecture logicielle  
-
-  
+** Architecture logicielle  
++ Le code du projet est découpé en 3 modules:
+  + *Arduino* qui contient le firmware des micro-contrôleurs.
+  + *Serveur* qui contient le code pour la communication réseau USB/UDP (Raspberry PI/ Linux).
+  + *Client* qui contient des exemples d'application client utilisant le système:
+    + CLI: Programme minimal codé en C avec interface en ligne de commande pour envoyer et recevoir des requetes.
+    + GUI: Panel de fonction LabView faisant office de bibliothèque d'utilisation du système de communication avec des exemples d'applications graphiques.   
++ Le fichier d'entête Arduino/shared.h contient les définitions des types du protocole de communication. Il est donc partagé entre le code du firmware des micro-controleurs et le code du Serveur.
++ Le code doit être sujet à une passe de nettoyage et de structuration. Je ne met donc pas de détails sur la structure du code dans sont implémentation actuelle qui doit être considérée comme un /Proof Of Concept/.
+      
 * Protocole <<SectionProtocole>>
-
++ TODO
+  
 * Guide d'utilisation
 
-* Guide de déploiment
+* Améliorations
++ [ ] Restructuration et nettoyage du code.
++ [ ] Log rotatifs.
++ [ ] Passage des arguments du serveur en ligne de commande.
++ [ ] Passage des arguments du serveur en fichier etc/xml/json/csv.
++ [ ] Installer serveur smb sur serveur pour accès au fichier de configuration
++ [ ] Mesures des temps d'execution.
++ [ ] Documentation.
++ [ ] WebViewer
