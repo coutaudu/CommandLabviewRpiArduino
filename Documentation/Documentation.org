@@ -2,8 +2,9 @@
 #+AUTHOR:COUTAUD Ulysse
 #+DATE:<2022-04-08 Fri>
 # #+LATEX_HEADER:\usepackage[margin=0.7in]{geometry}
-#+LATEX: \newpage
 
+
+#+LATEX: \newpage
 * Intro
 + Le système présenté dans ce document est l'interface de communication pour l'asservissement en température d'un parc de bac d'eau:
   [[./Figures/StructureAsservissement.pdf]]
@@ -11,13 +12,14 @@
   + D'envoyer des requêtes pour déclencher une lecture de la valeur d'un capteur, et de recevoir la valeur lue.
   + D'envoyer des requêtes pour inscrire une valeur de commande sur un actionneur.
     
+#+LATEX: \newpage
 * Installation
 ** Installation de l'environnement  
 *** Télécharger le projet 
 **** En ligne de commande:
 + Télécharger le dépot git (permet d'avoir les mise à jour via simple "git pull":
   + Soit : git clone https://github.com/coutaudu/CommandLabviewRpiArduino.git
-  + [???] Soit : git clone ssh://github.com/coutaudu/CommandLabviewRpiArduino.git
+  + Soit : git clone ssh://git@github.com/coutaudu/CommandLabviewRpiArduino.git
 + Télécharger juste les sources:
   + wget https://github.com/coutaudu/CommandLabviewRpiArduino/archive/refs/heads/main.zip
 + Si besoin: 
@@ -25,7 +27,7 @@
   + sudo apt-get install wget
 
 **** Via un navigateur web:
-+ Page  [[https://github.com/coutaudu/CommandLabviewRpiArduino]]
++ Page [[https://github.com/coutaudu/CommandLabviewRpiArduino]]
 
 *** Installer le projet
 **** Les micro-contrôleurs
@@ -51,15 +53,24 @@
     + binaire nu (toutes les valeurs de contrôles soft, telles que XonXoff sont désactivées).
       
 **** Le serveur
-+ Installer l'environnement
-+ Compiler le code du serveur
-+ Installer le service
-
++ Installer l'environnement:
+  rpi@raspberry:~/CommandLabViewRpiArduino $ /sudo ./install-required-software.sh/
++ Compiler le code du serveur:
+  rpi@raspberry:~/CommandLabViewRpiArduino/Serveur $ make
++ Le Serveur peut être lancé soit comme un executable "classique" (./SerialServeur), soit être installer et exécuter comme un service.
++ Le fichier de configuration SerialServeur.conf contient les paramêtres du service. A adapter si besoin de modifier des paramètres, notamment le nom d'utilisateur par défaut (rpi). 
++ Installer le service: via les commandes /make/:
+  + /make install_service/ pour installer le service.
+  + /make run_service/ pour lancer manuellement le service: 
+  + /stop_service/ pour stopper le service.
+  + /make auto_run_service/ pour lancer automatiquement le service à la mise sous tension.
+  + /make disable_service/ pour désactiver le démarrage automatique.
+  
 **** Les clients
 ***** Client CLI
-+ Configurer IP et port destination (du serveur donc).
-+ Compiler
-+ Executer
++ Configurer IP et port destination (du serveur donc) dans le code source.
++ Compiler via la commande /make/.
++ Executer /./Client/
 
 ***** Clients Labview
 + Installer Labview 21.
@@ -68,6 +79,7 @@
 + Executer.
 
   
+#+LATEX: \newpage
 * Architecture
 ** Matérielle  
 [[./Figures/Montage.pdf]]
@@ -90,11 +102,33 @@
 + Le fichier d'entête Arduino/shared.h contient les définitions des types du protocole de communication. Il est donc partagé entre le code du firmware des micro-controleurs et le code du Serveur.
 + Le code doit être sujet à une passe de nettoyage et de structuration. Je ne met donc pas de détails sur la structure du code dans sont implémentation actuelle qui doit être considérée comme un /Proof Of Concept/.
       
+#+LATEX: \newpage
 * Protocole <<SectionProtocole>>
-+ TODO
++ Les trames sont constituées de la manière suivante:
+  * [Version Protocole /8bits/]
+  * [Code de Fonction /8bits/]
+  * [Arguments /16bits/]
+
+** Version du protocole
++ Version 0 = erreur.
++ Version 1 = version actuelle.
++ Version 2-255 = RFU (Reserved Future Use). Le numéro de version est vérifié lors des communications entre contrôleurs et serveur doit être cohérents. Le numéro de version doit être incrémenter en cas d'ajout ou de modification des fonctions implémentées.
+
+** Les fonctions    
+*** V1
+| Code fonction | Argument [0] [ Argument [1]
+
   
++ 0 = Erreur.
++ 1 = Lecture Analogue.
++ 2 = Ecriture Digitale PWM.  
++ 3 = Lire UID carte.
++ 4-255 = RFU.      
+   
+#+LATEX: \newpage
 * Guide d'utilisation
 
+#+LATEX: \newpage
 * Améliorations
 + [ ] Restructuration et nettoyage du code.
 + [ ] Log rotatifs.
