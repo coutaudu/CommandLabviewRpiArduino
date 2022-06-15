@@ -1,8 +1,8 @@
 #+TITLE:Documentation Projet Pont IP-Serie pour boucle d'asservissement. 
 #+AUTHOR:COUTAUD Ulysse
 #+DATE:<2022-04-08 Fri>
-# #+LATEX_HEADER:\usepackage[margin=0.7in]{geometry}
-
+#+LATEX_HEADER:\usepackage[margin=1in]{geometry}
+#+LATEX_HEADER:\usepackage{xurl}
 
 #+LATEX: \newpage
 * Intro <<SectionIntro>>
@@ -18,13 +18,14 @@
 *** Télécharger le projet 
 **** En ligne de commande:
 + Télécharger le dépot git (permet d'avoir les mise à jour via simple "git pull":
-  + Soit : git clone https://github.com/coutaudu/CommandLabviewRpiArduino.git
+  + Soit : git clone /https/://github.com/coutaudu/CommandLabviewRpiArduino.git
   + Soit : git clone ssh://git@github.com/coutaudu/CommandLabviewRpiArduino.git
 + Télécharger juste les sources:
   + wget https://github.com/coutaudu/CommandLabviewRpiArduino/archive/refs/heads/main.zip
 + Si besoin: 
   + sudo apt-get install git
   + sudo apt-get install wget
+    
 
 **** Via un navigateur web:
 + Page [[https://github.com/coutaudu/CommandLabviewRpiArduino]]
@@ -169,9 +170,13 @@ Il est possible d'adapter pour d'autres types de contrôleur, auquel cas il faut 
 + Requête:
   + Argument[0]: UID du contrôleur (valeur en 0 et 255 unsigned char). 
   + Argument[1]: non utilisé.
-        
+
+*** 4-255 - RFU
+Les codes fonctions 4 à 255 sont libres pour l'ajout de nouvelles fonctions.
+
 #+LATEX: \newpage
 * Guide d'utilisation
+TODO
 
 #+LATEX: \newpage
 * Améliorations
