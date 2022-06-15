@@ -5,7 +5,7 @@
 
 
 #+LATEX: \newpage
-* Intro
+* Intro <<SectionIntro>>
 + Le système présenté dans ce document est l'interface de communication pour l'asservissement en température d'un parc de bac d'eau:
   [[./Figures/StructureAsservissement.pdf]]
 + Le système permet au /Client/ :
@@ -81,7 +81,7 @@
   
 #+LATEX: \newpage
 * Architecture
-** Matérielle  
+** Matérielle <<SectionArchitectureMatérielle>> 
 [[./Figures/Montage.pdf]]
 ** Architecture réseau
 + Les clients communiquent avec le serveur en UDP/IP.
@@ -104,27 +104,47 @@
       
 #+LATEX: \newpage
 * Protocole <<SectionProtocole>>
-+ Les trames sont constituées de la manière suivante:
-  * [Version Protocole /8bits/]
-  * [Code de Fonction /8bits/]
-  * [Arguments /16bits/]
 
++ Le protocole est basé sur le principe de /requête/réponse/.
+  + 1 /requête/ implique 1 /réponse/ de même code fonction.
+  + Les clients ou le serveur pilotent la communication: ils envoient les requêtes.
+  + Les micro-contrôleurs sont esclaves de la communication: ils reçoivent les requêtes et y répondent pas des réponses.
++ Les requêtes et les réponses ont le même format.
+  
+|-------------------+---------------+--------------+--------------|
+| Numéro de version | Code fonction | Argument [0] | Argument [1] |
+|-------------------+---------------+--------------+--------------|
+| 1 octet           | 1 octet       | 1 octet      | 1 octet      |
+|-------------------+---------------+--------------+--------------|
+
+    
 ** Version du protocole
 + Version 0 = erreur.
 + Version 1 = version actuelle.
-+ Version 2-255 = RFU (Reserved Future Use). Le numéro de version est vérifié lors des communications entre contrôleurs et serveur doit être cohérents. Le numéro de version doit être incrémenter en cas d'ajout ou de modification des fonctions implémentées.
++ Version 2-255 = RFU (Reserved for Future Use). Le numéro de version est vérifié lors des communications entre contrôleurs et serveur doit être cohérents. Le numéro de version doit être incrémenter en cas d'ajout ou de modification des fonctions implémentées.
 
 ** Les fonctions    
-*** V1
-| Code fonction | Argument [0] [ Argument [1]
-
-  
 + 0 = Erreur.
-+ 1 = Lecture Analogue.
-+ 2 = Ecriture Digitale PWM.  
++ 1 = Lecture analogue.
++ 2 = Ecriture digitale PWM.  
 + 3 = Lire UID carte.
 + 4-255 = RFU.      
-   
+
+*** 0 - Erreur
++ Le code fonction 0 indique une erreur.
+  + Par exemple: lecture sur un numéro de pin inconnu, réponse à un code fonction inconnu.
+  + Une requête de code fonction /erreur/ doit recevoir une réponse de code fonciton erreur.
+
+*** 1 - Lecture analogue    
++ Le code fonction 1 indique une lecture analogue.
++ Requête:
+  + Argument[0] contient le numéro de pin cible (voir schémas en section [[SectionArchitectureMatérielle]] et [[SectionIntro]]).
+  + Argument[1] n'est pas utilisé.
++ Réponse:
+  + Argument contient la valeur analogue lut par le micro-contrôleur (valeur entre 0 et 1024 au format unsigned int sur 2 octets dans le cas /Arduino Uno/).
+
+    
+    
 #+LATEX: \newpage
 * Guide d'utilisation
 
