@@ -30,20 +30,23 @@
 + Page [[https://github.com/coutaudu/CommandLabviewRpiArduino]]
 
 *** Installer le projet
-**** Les micro-contrôleurs
-***** Flasher un UID sur chacun des micro-contrôleurs du système
-+ Il est IMPERATIF d'inscrire un UID dans chacun des micro-contrôleurs utilisés dans le système (nécessaire pour la détection puis la redirection des requêtes vers le bon micro-contrôleur).
+**** Les contrôleurs
+Le projet est développé et tester avec des micro-contrôleur /Arduino Uno/.
+Il est possible d'adapter pour d'autres types de contrôleur, auquel cas il faut développer le code spécifique et implémenter les fonctions décritent en section [[SectionProtocole]].
+
+***** Flasher un UID sur chacun des contrôleurs du système
++ Il est IMPERATIF d'inscrire un UID dans chacun des contrôleurs utilisés dans le système (nécessaire pour la détection puis la redirection des requêtes vers le bon contrôleur).
 + Pour cela il faut utiliser la fonction /int setBoardUID(unsigned char uid);/:
   + Décommenter la ligne dans la fonction /setup/ en inscrivant l'UID voulu.
-  + Compiler puis flasher le micro-contrôleur. L'UID a été gravé dans l'EEPROM.
+  + Compiler puis flasher le contrôleur. L'UID a été gravé dans l'EEPROM.
   + Recommenter la ligne, compiler et flasher pour ne pas re-graver l'UID par la suite.
 
-***** Flasher le firmware sur chacun des micro-contrôleurs du système
-+ Le firmware doit être flashé sur chacun des micros contrôleurs.
+***** Flasher le firmware sur chacun des contrôleurs du système
++ Le firmware doit être flashé sur chacun des contrôleurs.
   + Testé avec Arduino IDE 1.8.19.
   + Carte Arduino AVR Board > Arduino UNO.
   + Utilise librairie "EEPROM.h" (built-in).
-+ Les micro-controleurs sont branchés en USB.
++ Les contrôleurs sont branchés en USB.
   + Une fois branché, le Serveur doit les détecter: //dev/ttyACM0/ et //dev/ttyACM0/.
   + Les paramêtres de communication série sont:
     + 115200 bauds
@@ -85,21 +88,21 @@
 [[./Figures/Montage.pdf]]
 ** Architecture réseau
 + Les clients communiquent avec le serveur en UDP/IP.
-+ Le serveur communique avec les micro-contrôleurs en USB.
++ Le serveur communique avec les contrôleurs en USB.
 + Le protocole applicatif [TODO NOM DE PROTOCOLE] est un développement spécifique au projet.
   Le protocole est décrit en section [[SectionProtocole]].
 + Le serveur fait :
   + Pont UDP<->USB.
-  + Routage N°Pin<->UID micro-contrôleur.  
+  + Routage N°Pin<->contrôleur (UID).  
 
 ** Architecture logicielle  
 + Le code du projet est découpé en 3 modules:
-  + *Arduino* qui contient le firmware des micro-contrôleurs.
+  + *Arduino* qui contient le firmware des contrôleurs.
   + *Serveur* qui contient le code pour la communication réseau USB/UDP (Raspberry PI/ Linux).
   + *Client* qui contient des exemples d'application client utilisant le système:
     + CLI: Programme minimal codé en C avec interface en ligne de commande pour envoyer et recevoir des requetes.
     + GUI: Panel de fonction LabView faisant office de bibliothèque d'utilisation du système de communication avec des exemples d'applications graphiques.   
-+ Le fichier d'entête Arduino/shared.h contient les définitions des types du protocole de communication. Il est donc partagé entre le code du firmware des micro-controleurs et le code du Serveur.
++ Le fichier d'entête Arduino/shared.h contient les définitions des types du protocole de communication. Il est donc partagé entre le code du firmware des contrôleurs et le code du serveur.
 + Le code doit être sujet à une passe de nettoyage et de structuration. Je ne met donc pas de détails sur la structure du code dans sont implémentation actuelle qui doit être considérée comme un /Proof Of Concept/.
       
 #+LATEX: \newpage
@@ -108,7 +111,7 @@
 + Le protocole est basé sur le principe de /requête/réponse/.
   + 1 /requête/ implique 1 /réponse/ de même code fonction.
   + Les clients ou le serveur pilotent la communication: ils envoient les requêtes.
-  + Les micro-contrôleurs sont esclaves de la communication: ils reçoivent les requêtes et y répondent pas des réponses.
+  + Les contrôleurs sont esclaves de la communication: ils reçoivent les requêtes et y répondent pas des réponses.
 + Les requêtes et les réponses ont le même format.
   
 |-------------------+---------------+--------------+--------------|
@@ -117,7 +120,13 @@
 | 1 octet           | 1 octet       | 1 octet      | 1 octet      |
 |-------------------+---------------+--------------+--------------|
 
-    
++ Le protocole est un protocole de niveau applicatif dans le modèle en couche OSI.
++ Le protocole fonctionne par paquet de 4 octets qui doivent pouvoir être envoyés entre les clients et le serveur et entre le serveur et les contrôleurs.
++ Le protocole est neutre vis à vis des couches réseaux inférieures utilisées pour transmettre ses paquets.
+  L'implémentation actuelle utilise UDP/IP entre les clients et le serveur, et USB entre le serveur et les contrôleurs. 
++ Le protocole ne fournit pas de garantie de qualité de service (QoS), ni en termes de latence, ni d'intégrité des données, ni d'ordonnancement.
+  En cas de besoin de besoin QoS, il faut utiliser des protocoles réseaux fournissant ces garanties dans les couches réseaux inférieures.
+           
 ** Version du protocole
 + Version 0 = erreur.
 + Version 1 = version actuelle.
@@ -127,7 +136,7 @@
 + 0 = Erreur.
 + 1 = Lecture analogue.
 + 2 = Ecriture digitale PWM.  
-+ 3 = Lire UID carte.
++ 3 = Lecture UID contrôleur.
 + 4-255 = RFU.      
 
 *** 0 - Erreur
@@ -138,13 +147,29 @@
 *** 1 - Lecture analogue    
 + Le code fonction 1 indique une lecture analogue.
 + Requête:
-  + Argument[0] contient le numéro de pin cible (voir schémas en section [[SectionArchitectureMatérielle]] et [[SectionIntro]]).
-  + Argument[1] n'est pas utilisé.
+  + Argument[0]: numéro de pin cible (voir schémas en section [[SectionArchitectureMatérielle]] et [[SectionIntro]]).
+  + Argument[1]: non utilisé.
 + Réponse:
-  + Argument contient la valeur analogue lut par le micro-contrôleur (valeur entre 0 et 1024 au format unsigned int sur 2 octets dans le cas /Arduino Uno/).
+  + Argument contient la valeur analogue lut par le contrôleur (valeur entre 0 et 1024 au format unsigned int sur 2 octets dans le cas /Arduino Uno/).
 
+*** 2 - Ecriture digitale PWM
++ Le code fonction 2 indique une écriture digitale sur une pin en PWM.     
++ Requête:
+  + Argument[0]: numéro de pin cible (voir schémas en section [[SectionArchitectureMatérielle]] et [[SectionIntro]]).
+  + Argument[1]: valeur à affecter entre 0 et 255 (unsigned char).
++ Réponse:
+  + Argument[0]: numéro de pin cible (voir schémas en section [[SectionArchitectureMatérielle]] et [[SectionIntro]]).
+  + Argument[1]: valeur affectée entre 0 et 255 (unsigned char).
     
-    
+*** 3 - Lecture UID contrôleur
++ Le code fonction 3 indique la lecture de l'UID du contrôleur.
++ Requête:
+  + Argument[0]: non utilisé. 
+  + Argument[1]: non utilisé.
++ Requête:
+  + Argument[0]: UID du contrôleur (valeur en 0 et 255 unsigned char). 
+  + Argument[1]: non utilisé.
+        
 #+LATEX: \newpage
 * Guide d'utilisation
 
