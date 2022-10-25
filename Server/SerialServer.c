@@ -5,14 +5,18 @@
 /******************/
 
 #include "SerialServer.h"
+char devicesNames[NB_MAX_SERIAL_DEVICES][512];
+char* targetRepertory="/dev/";
+char* devicesBasename="ttyACM";
+int nbDevicesFound=0;
+
 
 int main(){
-    int fdSerials[2];
+    int fdSerials[NB_MAX_SERIAL_DEVICES];
     int socketUDP;
     command request, response;
     struct sockaddr_in infosClientUDP;
-
-
+    
     initLog("/tmp/SerialServer.log");
     
     socketUDP = initUDP();
@@ -30,6 +34,8 @@ int main(){
 	sendResponseUDP(&response, socketUDP, &infosClientUDP);	
     };
 
+    // closeSerials
+    // TODO For i in 0 NB_MAX_SERIAL_DEVICES : close
     close(fdSerials[0]);
     close(fdSerials[1]);
     if(TRACE) printf("\tSerial closed by peer.\n");
@@ -101,8 +107,6 @@ int transmitCommandSerial(command* request, command* response, int* fdSerials){
     return 0; 
 }
 
-									  
-
 int identifyArduinoOnSerial(int fdTemp, int* fd){
     command request;
     command response;
@@ -123,13 +127,52 @@ int identifyArduinoOnSerial(int fdTemp, int* fd){
     return 0;
 }
 
-int initSerials(int* fd){
-    int fdTemp; 
+int detectAvailableDevices(char** devNames, char* basename, char* repertory){
+    DIR *targetRepertoryStream;
+    struct dirent *fileInfosStruct;
+
+    /* printf("devNames--------[%u]---\n",((unsigned int)devNames)); */
+    /* printf("devNames[0]-----[%u]---\n",((unsigned int)devNames[0])); */
+    /* printf("&devNames[0][9]-[%u]---\n",((unsigned int)&devNames[0][9])); */
+    /* printf("&devNames[0]----[%u]---\n",((unsigned int)&devNames[1])); */
+    /* printf("&devNames-------[%u]---\n",((unsigned int)&devNames)); */
+
     
-    fdTemp = openSerial(SERIAL_FILE_0);
-    identifyArduinoOnSerial(fdTemp,fd);
-    fdTemp = openSerial(SERIAL_FILE_1);
-    identifyArduinoOnSerial(fdTemp,fd);
+    targetRepertoryStream = opendir(repertory);
+    if (targetRepertoryStream == NULL){
+	if(TRACE) printf("\t\tFailed. Returned NULL.\n");
+	if(TRACE) printf("\t\t[%s]\n", strerror(errno));
+	return -1;
+    } else { // targetRepertoryStream != NULL
+	while ((fileInfosStruct = readdir(targetRepertoryStream)) != NULL) {
+	    if (strncmp(basename,fileInfosStruct->d_name,strlen(basename))==0){
+		
+		strcpy((char*)&devNames[nbDevicesFound],repertory);
+		strcat((char*)&devNames[nbDevicesFound],fileInfosStruct->d_name);
+		printf("---[%s]---\n",((char*)&devNames[nbDevicesFound]));
+		nbDevicesFound++;
+	    }
+	}
+	closedir(targetRepertoryStream);
+	return 0;
+    }
+}
+
+
+int initSerials(int* fd){
+    int fdTemp;
+    int i;
+    detectAvailableDevices((char**)devicesNames,devicesBasename,targetRepertory);
+    /* printf("devicesNames--------[%u]---\n",((unsigned int)devicesNames)); */
+    /* printf("devicesNames[0]-----[%u]---\n",((unsigned int)devicesNames[0])); */
+    /* printf("&devicesNames[0][1]-[%u]---\n",((unsigned int)&devicesNames[0][1])); */
+    /* printf("&devicesNames[0]----[%u]---\n",((unsigned int)&devicesNames[1])); */
+    /* printf("&devicesNames-------[%u]---\n",((unsigned int)&devicesNames)); */
+
+    for (i=0; i<nbDevicesFound; i++){
+	   fdTemp = openSerial(devicesNames[0]);
+	   identifyArduinoOnSerial(fdTemp,fd);
+    }
 
     if(TRACE) printf("\n");
     return 0;    

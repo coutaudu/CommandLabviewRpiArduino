@@ -14,17 +14,19 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <time.h>
+#include <dirent.h> 
 
 #include "csapp.h"
 
 #include "../Arduino/shared.h"
 
-#define TRACE   TRUE
+#define TRACE TRUE
 #define DEBUG TRUE
 #define SERIAL_FILE_0 "/dev/ttyACM0"
 #define SERIAL_FILE_1 "/dev/ttyACM1"
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
 #define NB_MAX_TRY_AGAIN_OPEN_SERIAL 3
+#define NB_MAX_SERIAL_DEVICES 3
 
 int LOG_FILE_FD;
 
