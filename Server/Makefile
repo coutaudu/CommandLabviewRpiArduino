@@ -15,11 +15,11 @@ LDFLAGS =
 #LIBS += -lsocket -lnsl -lrt
 LIBS += -lpthread
 
-INCLUDE = ./csapp.h
-OBJS = ./csapp.o
+INCLUDE = csapp.h
+OBJS = csapp.o CommunicationMicrocontrollers-Serial.o CommunicationClients-UDP.o Protocol.o Logs.o
 INCLDIR = -I.
 
-PROGS = SerialServer
+PROGS = TemperatureControlRouter
 
 all: $(PROGS)
 
@@ -28,24 +28,23 @@ all: $(PROGS)
 
 %: %.o $(OBJS)
 	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
-#	$(CC) -o $@ $(LDFLAGS) $(LIBS) $^
 
-install_service: SerialServer.conf
-	sudo cp SerialServer.conf /etc/systemd/system/SerialServer.service
-	sudo cp ./SerialServer /bin/SerialServer
+install_service: TemperatureControlRouter.conf
+	sudo cp TemperatureControlRouter.conf /etc/systemd/system/TemperatureControlRouter.service
+	sudo cp ./TemperatureControlRouter /bin/TemperatureControlRouter
 
 run_service: install_service
-	systemctl start SerialServer
+	systemctl start TemperatureControlRouter
 	systemctl daemon-reload
 
 auto_run_service:
-	systemctl enable SerialServer
+	systemctl enable TemperatureControlRouter
 
 stop_service:
-	systemctl stop  SerialServer
+	systemctl stop  TemperatureControlRouter
 
 disable_service:
-	systemctl disable SerialServer
+	systemctl disable TemperatureControlRouter
 
 
 clean:

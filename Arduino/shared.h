@@ -4,6 +4,10 @@
 /* 2022		  */
 /******************/
 
+#ifndef SHARED_H
+#define SHARED_H
+
+
 //DEFITION STRUCTURES ET TYPES
 typedef struct command{
     unsigned char Version; // Version 1. 2-255 RFU. 0 Error
@@ -27,3 +31,4 @@ typedef struct command{
 #define PORT 7191   // Port d'écoute.
 
 
+#endif
