@@ -6,6 +6,9 @@
 
 #include "CommunicationClients-UDP.h"
 
+int socketUDP;
+struct sockaddr_in infosClientUDP;
+
 int initUDP(){
     struct sockaddr_in infosSocketServer;
     int socketReceptionUDP;
@@ -33,14 +36,14 @@ int initUDP(){
 }
 
 
-int sendResponseUDP(command* cmd, int socketfd, struct sockaddr_in* infosClientUDP){
-    if (sendto(socketfd, cmd, sizeof(cmd), 0,(const struct sockaddr*)infosClientUDP, sizeof(*infosClientUDP))<0){
+int sendResponseToClient_UDP(command* cmd){
+    if (sendto(socketUDP, cmd, sizeof(cmd), 0,(const struct sockaddr*)&infosClientUDP, sizeof(infosClientUDP))<0){
 	perror("sento");
     }
     return 0;
 }
 
-int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosClientUDP){
+int receiveCommandFromClient_UDP(command* cmd){
     int nbBytesReceived;
     socklen_t addrlen;
     
@@ -48,18 +51,18 @@ int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosClientUDP){
     if(DEBUG) fflush(stdout);
 
     // man: (...) addrlen is a value-result argument (...)
-    addrlen = sizeof(*infosClientUDP); 
+    addrlen = sizeof(infosClientUDP); 
     
     // Recevoir données. ! Appel bloquant ! 
-    if ((nbBytesReceived = recvfrom(socket, cmd, sizeof(cmd), 0, (struct sockaddr *)infosClientUDP, &addrlen)) == -1) {
+    if ((nbBytesReceived = recvfrom(socketUDP, cmd, sizeof(cmd), 0, (struct sockaddr *)&infosClientUDP, &addrlen)) == -1) {
 	perror("recvfrom()");
 	return -2;
     }
 
     if (DEBUG) {
-	struct in_addr ipAddr = ((struct sockaddr_in*)infosClientUDP)->sin_addr;
+	struct in_addr ipAddr = ((struct sockaddr_in*)&infosClientUDP)->sin_addr;
 	char str[INET_ADDRSTRLEN];
-	printf("IPsrc[%s]:%d\n", inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN ),((struct sockaddr_in*)infosClientUDP)->sin_port);
+	printf("IPsrc[%s]:%d\n", inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN ),((struct sockaddr_in*)&infosClientUDP)->sin_port);
     }
 
     //    if(TRACE) printf("Received Command From UDP.\n");

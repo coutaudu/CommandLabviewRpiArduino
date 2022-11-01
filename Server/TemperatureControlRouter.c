@@ -9,25 +9,23 @@
 
 int main(){
     int fdSerials[NB_MAX_SERIAL_DEVICES];
-    int socketUDP;
     command request, response;
-    struct sockaddr_in infosClientUDP;
     
     logInit("/tmp/TemperatureControlRouter.log");
     
-    socketUDP = initUDP();
+    initUDP();
     initSerials(fdSerials);
 
     if(TRACE) printf("\tReady: Wait for commands.\n");
     while (TRUE) {
-	if ( getCommandUDP(&request, socketUDP, &infosClientUDP) < 0){
+	if ( receiveCommandFromClient_UDP(&request) < 0){
 	    if (TRACE) printf(" Received command is invalid.\n");
 	    response = errorCommand();
 	} else {
 	    transmitCommandSerial(&request, &response, fdSerials );
-	    if (TRACE) logCommand(&request, &response);
+	    if (TRACE) traceCommand(&request, &response);
 	}
-	sendResponseUDP(&response, socketUDP, &infosClientUDP);	
+	sendResponseToClient_UDP(&response);	
     };
 
     // closeSerials

@@ -8,7 +8,7 @@
 
 int LOG_FILE_FD;
 
-int logCommand(command* request, command* response){
+int traceCommand(command* request, command* response){
     printf("\t");
     printCommand(request);
     printf("\t->\t");

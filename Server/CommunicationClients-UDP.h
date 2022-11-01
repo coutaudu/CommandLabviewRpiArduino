@@ -18,10 +18,10 @@ int initUDP();
 
 
 // UDP Interface
-int getCommandUDP(command* cmd, int socket, struct sockaddr_in* infosSocketClient);
+int receiveCommandFromClient_UDP(command* cmd);
 
 // Envoie réponse de l'arduino a client source de la requete.
-int sendResponseUDP(command* cmd, int socket, struct sockaddr_in* infosSocketClient);
+int sendResponseToClient_UDP(command* cmd);
 
 
 

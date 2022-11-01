@@ -16,7 +16,7 @@
 int logInit(char* filename);
 
 // Note la commande dans les logs.
-int logCommand(command* request, command* response);
+int traceCommand(command* request, command* response);
 
 // Inscrit une erreur dans le fichier de log
 int logPrint(int errorCode, int arg);
