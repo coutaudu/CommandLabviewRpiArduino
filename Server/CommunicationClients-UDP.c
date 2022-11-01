@@ -11,14 +11,13 @@ struct sockaddr_in infosClientUDP;
 
 int initUDP(){
     struct sockaddr_in infosSocketServer;
-    int socketReceptionUDP;
 
     if(TRACE) printf("\tOpen UDP Port[%5d]\n",PORT);
-    if ((socketReceptionUDP=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+    if ((socketUDP=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 	perror("socket");
 	return -1;
     }
-    if(TRACE) printf("\t\tSocket Creation Successful. Socket[%1d]\n",socketReceptionUDP);
+    if(TRACE) printf("\t\tSocket Creation Successful. Socket[%1d]\n",socketUDP);
     
     // Vide les structures.
     memset((char *) &infosSocketServer, 0, sizeof(infosSocketServer));	
@@ -27,12 +26,12 @@ int initUDP(){
     infosSocketServer.sin_addr.s_addr = htonl(INADDR_ANY);
 
     //bind socket to port
-    if( bind(socketReceptionUDP , (struct sockaddr*)&infosSocketServer, sizeof(infosSocketServer) ) == -1) {
+    if( bind(socketUDP , (struct sockaddr*)&infosSocketServer, sizeof(infosSocketServer) ) == -1) {
 	perror("bind");
 	return -1;
     }
     if(TRACE) printf("\t\tSocket Bind Successful.\n\n");
-    return socketReceptionUDP;
+    return socketUDP;
 }
 
 
