@@ -11,8 +11,7 @@ char* targetRepertory="/dev/";
 char* devicesBasename="ttyACM";
 int nbDevicesFound=0;
 
-char devicesNames[NB_MAX_SERIAL_DEVICES][512];
-
+char devicesNames[NB_MAX_SERIAL_DEVICES][SIZE_MAX_FILE_NAME];
 
 int openSerial(char* serialFile){
     int fileDescriptor = -1;
@@ -41,7 +40,7 @@ int openSerial(char* serialFile){
 }
 
 
-int receiveCommandSerial(command* cmd, int fdSerial){
+int receiveCommandFromMicrocontroller_Serial(command* cmd, int fdSerial){
     int n;
     if (DEBUG) printf("Start rcv %lu bytes:\n", (long unsigned)sizeof(command));
     n = rio_readn(fdSerial, cmd, sizeof(command));
@@ -51,7 +50,7 @@ int receiveCommandSerial(command* cmd, int fdSerial){
 }
 
 
-int sendCommandSerial(command* cmd, int fdSerial){
+int sendCommandToMicrocontroller_Serial(command* cmd, int fdSerial){
     int n;
     n = rio_writen(fdSerial, cmd, sizeof(command));
     if (DEBUG) printf("Send %d bytes:\t\t",n);
@@ -95,8 +94,8 @@ int identifyArduinoOnSerial(int fdTemp, int* fd){
     unsigned char uidArduino;
 
     request = requestUidCommand();
-    sendCommandSerial(&request, fdTemp);
-    receiveCommandSerial(&response, fdTemp);
+    sendCommandToMicrocontroller_Serial(&request, fdTemp);
+    receiveCommandFromMicrocontroller_Serial(&response, fdTemp);
     uidArduino = response.Argument[0];
     // Filtre resultat par sureté: id affectés 0 et 1.
     if (uidArduino>1) {
@@ -159,23 +158,3 @@ int initSerials(int* fd){
     return 0;    
 }
 
-int transmitCommandSerial(command* request, command* response, int* fdSerials){
-    int fdTmp;
-    if ( commandIsValid(request) < 0){
-	printf("Command is not valid.\n");
-	return -1;
-    }
-    if ( (fdTmp = routeCommand(request, fdSerials)) < 0 ){
-	printf("Pin is not known.\n");
-	return -1;
-    }
-    if ( sendCommandSerial(request, fdTmp) < 0 ){
-	printf("Failed to send request command.\n");
-	return -1;
-    }
-    if ( receiveCommandSerial(response, fdTmp) < 0 ){
-	printf("Failed to send response command.\n");
-	return -1;
-    }
-    return 0; 
-}

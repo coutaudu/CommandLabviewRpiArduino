@@ -55,6 +55,7 @@ int receiveCommandFromClient_UDP(command* cmd){
     // Recevoir données. ! Appel bloquant ! 
     if ((nbBytesReceived = recvfrom(socketUDP, cmd, sizeof(cmd), 0, (struct sockaddr *)&infosClientUDP, &addrlen)) == -1) {
 	perror("recvfrom()");
+	if (TRACE) printf("Error UDP receive.\n");
 	return -2;
     }
 
@@ -62,11 +63,6 @@ int receiveCommandFromClient_UDP(command* cmd){
 	struct in_addr ipAddr = ((struct sockaddr_in*)&infosClientUDP)->sin_addr;
 	char str[INET_ADDRSTRLEN];
 	printf("IPsrc[%s]:%d\n", inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN ),((struct sockaddr_in*)&infosClientUDP)->sin_port);
-    }
-
-    //    if(TRACE) printf("Received Command From UDP.\n");
-    if ( cmd->Version != CURRENT_VERSION ){
-	return -1;
     }
 
     return 0;

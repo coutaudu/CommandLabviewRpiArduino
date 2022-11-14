@@ -32,7 +32,12 @@ extern int LOG_FILE_FD;
 // Retourne le fd destination si OK.
 int routeCommand(command* cmd, int* fdSerials);
 
-
+// Gere la communication serie avec les micro-controleurs.
+// Verifie la commande.
+// Identifie le micro controlleur de destination
+// Envoie la requete
+// Recoit la reponse
+int handleCommand(command* request, command* response, int* fdSerials);
 
 
 

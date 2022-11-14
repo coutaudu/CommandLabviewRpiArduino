@@ -12,7 +12,7 @@
 #include <dirent.h> 
 #include <termios.h>
 
-
+#define SIZE_MAX_FILE_NAME 512
 #define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
 #define NB_MAX_TRY_AGAIN_OPEN_SERIAL 3
 #define NB_MAX_SERIAL_DEVICES 3
@@ -41,16 +41,17 @@ int identifyArduinoOnSerial(int fdTemp, int* fd);
 
 // Reçoit une commande (une réponse donc)) sur la ligne série.
 // En binaire.
-int receiveCommandSerial(command* cmd, int fdSerial);
+int receiveCommandFromMicrocontroller_Serial(command* cmd, int fdSerial);
 
 // Envoie une commande sur la ligne série.
 // En binaire.
-int sendCommandSerial(command* cmd, int fdDestination);
+int sendCommandToMicrocontroller_Serial(command* cmd, int fdDestination);
+
 // Gere la communication serie avec les micro-controleurs.
 // Verifie la commande.
 // Identifie le micro controlleur de destination
 // Envoie la requete
 // Recoit la reponse
-int transmitCommandSerial(command* request, command* response, int* fdSerials);
+//int transmitCommandSerial(command* request, command* response, int* fdSerials);
 
 #endif

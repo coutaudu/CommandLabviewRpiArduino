@@ -19,10 +19,9 @@ int main(){
     if(TRACE) printf("\tReady: Wait for commands.\n");
     while (TRUE) {
 	if ( receiveCommandFromClient_UDP(&request) < 0){
-	    if (TRACE) printf(" Received command is invalid.\n");
 	    response = errorCommand();
 	} else {
-	    transmitCommandSerial(&request, &response, fdSerials );
+	    handleCommand(&request, &response, fdSerials );
 	    if (TRACE) traceCommand(&request, &response);
 	}
 	sendResponseToClient_UDP(&response);	
@@ -34,6 +33,27 @@ int main(){
     close(fdSerials[1]);
     if(TRACE) printf("\tSerial closed by peer.\n");
     return 0;
+}
+
+int handleCommand(command* request, command* response, int* fdSerials){
+    int fdTmp;
+    if ( commandIsValid(request) < 0){
+	printf("Command is not valid.\n");
+	return -1;
+    }
+    if ( (fdTmp = routeCommand(request, fdSerials)) < 0 ){
+	printf("Pin is not known.\n");
+	return -1;
+    }
+    if ( sendCommandToMicrocontroller_Serial(request, fdTmp) < 0 ){
+	printf("Failed to send request command.\n");
+	return -1;
+    }
+    if ( receiveCommandFromMicrocontroller_Serial(response, fdTmp) < 0 ){
+	printf("Failed to send response command.\n");
+	return -1;
+    }
+    return 0; 
 }
 
 
