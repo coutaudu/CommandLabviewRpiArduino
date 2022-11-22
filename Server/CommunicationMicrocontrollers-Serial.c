@@ -26,13 +26,16 @@ int openSerial(char* serialFile){
 	tryAgainCounter++;
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
-    if(TRACE) printf("\t\tOpen Serial successful. FileDescriptor[%d]\n", fileDescriptor);
+    if(TRACE) printf("\t\tOpen Serial successful.\n");
+    if(TRACE) printf("\t\tFileDescriptor [%d]\n", fileDescriptor);
 
     while (setSerialParameters(fileDescriptor)!=0){
 	printf("Error setting Serial Parameters.\n");
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
-	   
+
+    if(TRACE) printf("\n");
+
     // TODO ce délai semble nécessaire pour laisser le temps à la ligne de demarrer
     // correctement, sinon le premier write est perdu...
     sleep(3);
@@ -53,7 +56,7 @@ int receiveCommandFromMicrocontroller_Serial(command* cmd, int fdSerial){
 int sendCommandToMicrocontroller_Serial(command* cmd, int fdSerial){
     int n;
     n = rio_writen(fdSerial, cmd, sizeof(command));
-    if (DEBUG) printf("Send %d bytes:\t\t",n);
+    if (DEBUG) printf("Send %d bytes:\t",n);
     if (DEBUG) printCommand(cmd);
     return n;
 }
@@ -93,6 +96,7 @@ int identifyArduinoOnSerial(int fdTemp, int* fd){
     command response;
     unsigned char uidArduino;
 
+    if (TRACE) printf("\tIdentifying Micro-Controller over FileDescriptor [%1u].\n",fdTemp);
     request = requestUidCommand();
     sendCommandToMicrocontroller_Serial(&request, fdTemp);
     receiveCommandFromMicrocontroller_Serial(&response, fdTemp);
@@ -103,21 +107,28 @@ int identifyArduinoOnSerial(int fdTemp, int* fd){
 	return -1;
     }
     fd[uidArduino] = fdTemp;
-    if (TRACE) printf("\t\tArduino[%1u] <-> fd<%1u>\n",uidArduino,fd[uidArduino]);
+    if (TRACE) printf("\t\tArduinoID[%1u]\n",uidArduino);
 
     return 0;
 }
 
+void printDevicesNamesTable(){
+    int i;
+    printf("\tDetected Devices:\n");
+    for (i=0; i<nbDevicesFound;i++){
+	printf("\t\t[%s]\n",((char*)&devicesNames[i]));
+    }
+}
 
-int detectAvailableDevices(char** devNames, char* basename, char* repertory){
+int detectAvailableDevices(char* basename, char* repertory){
     DIR *targetRepertoryStream;
     struct dirent *fileInfosStruct;
 
-    /* printf("devNames--------[%u]---\n",((unsigned int)devNames)); */
-    /* printf("devNames[0]-----[%u]---\n",((unsigned int)devNames[0])); */
-    /* printf("&devNames[0][9]-[%u]---\n",((unsigned int)&devNames[0][9])); */
-    /* printf("&devNames[0]----[%u]---\n",((unsigned int)&devNames[1])); */
-    /* printf("&devNames-------[%u]---\n",((unsigned int)&devNames)); */
+    /* printf("devicesNames--------[%u]---\n",((unsigned int)devicesNames)); */
+    /* printf("devicesNames[0]-----[%u]---\n",((unsigned int)devicesNames[0])); */
+    /* printf("&devicesNames[0][0]-[%u]---\n",((unsigned int)&devicesNames[0][0])); */
+    /* printf("&devicesNames[0]----[%u]---\n",((unsigned int)&devicesNames[0])); */
+    /* printf("&devicesNames-------[%u]---\n",((unsigned int)&devicesNames)); */
     
     targetRepertoryStream = opendir(repertory);
     if (targetRepertoryStream == NULL){
@@ -127,13 +138,14 @@ int detectAvailableDevices(char** devNames, char* basename, char* repertory){
     } else { // targetRepertoryStream != NULL
 	while ((fileInfosStruct = readdir(targetRepertoryStream)) != NULL) {
 	    if (strncmp(basename,fileInfosStruct->d_name,strlen(basename))==0){
-		
-		strcpy((char*)&devNames[nbDevicesFound],repertory);
-		strcat((char*)&devNames[nbDevicesFound],fileInfosStruct->d_name);
-		printf("---[%s]---\n",((char*)&devNames[nbDevicesFound]));
+		// printf("[%s]\n",fileInfosStruct->d_name);
+ 		strcpy(&(devicesNames[nbDevicesFound][0]),repertory);
+		strcat((char*)&devicesNames[nbDevicesFound],fileInfosStruct->d_name);
+		// printf("---[%s]---\n",((char*)&devicesNames[nbDevicesFound]));
 		nbDevicesFound++;
 	    }
 	}
+	if(TRACE) printDevicesNamesTable();
 	closedir(targetRepertoryStream);
 	return 0;
     }
@@ -142,7 +154,7 @@ int detectAvailableDevices(char** devNames, char* basename, char* repertory){
 int initSerials(int* fd){
     int fdTemp;
     int i;
-    detectAvailableDevices((char**)devicesNames,devicesBasename,targetRepertory);
+    detectAvailableDevices(devicesBasename,targetRepertory);
     /* printf("devicesNames--------[%u]---\n",((unsigned int)devicesNames)); */
     /* printf("devicesNames[0]-----[%u]---\n",((unsigned int)devicesNames[0])); */
     /* printf("&devicesNames[0][1]-[%u]---\n",((unsigned int)&devicesNames[0][1])); */
@@ -150,10 +162,9 @@ int initSerials(int* fd){
     /* printf("&devicesNames-------[%u]---\n",((unsigned int)&devicesNames)); */
 
     for (i=0; i<nbDevicesFound; i++){
-	   fdTemp = openSerial(devicesNames[0]);
-	   identifyArduinoOnSerial(fdTemp,fd);
+	fdTemp = openSerial(devicesNames[0]);
+	identifyArduinoOnSerial(fdTemp,fd);
     }
-
     if(TRACE) printf("\n");
     return 0;    
 }

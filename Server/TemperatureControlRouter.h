@@ -22,7 +22,7 @@
 #include "../Arduino/shared.h"
 
 #define TRACE TRUE
-#define DEBUG TRUE
+#define DEBUG FALSE
 
 extern int LOG_FILE_FD;
 

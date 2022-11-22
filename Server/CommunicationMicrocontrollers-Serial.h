@@ -26,7 +26,7 @@ int openSerial(char* serialFile);
 
 // Cherche la disponibilité des devices.
 // Par exemple au format /dev/ttyACM*
-int detectAvailableDevices(char** devNames, char* basename, char* repertory);
+int detectAvailableDevices(char* basename, char* repertory);
 
 // Prepare les parametres de communications serie.
 // fd est le descripteur de fichier vers le pseudo fichier tty
@@ -46,6 +46,9 @@ int receiveCommandFromMicrocontroller_Serial(command* cmd, int fdSerial);
 // Envoie une commande sur la ligne série.
 // En binaire.
 int sendCommandToMicrocontroller_Serial(command* cmd, int fdDestination);
+
+// Trace le contenue de la table des microcontroleurs connectés
+void printDevicesNamesTable();
 
 // Gere la communication serie avec les micro-controleurs.
 // Verifie la commande.
