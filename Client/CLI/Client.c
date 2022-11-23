@@ -71,6 +71,7 @@ int commandSetDigitalPWM(command* cmd){
 
     printf("\t[2]\tWhich Pin ? [0-11]\n");
     scanf(" %hhu",&pin);
+    scanf("%*[^\n]"); // Vide le buffer d'entree
     printf("\t[2]\tValue ? [0-255]\n");
     scanf("%*[^\n]"); // Vide le buffer d'entree
     scanf(" %hhu",&value);
@@ -103,6 +104,7 @@ int commandGetAnalog(command* cmd){
     cmd->Function = GET_ANALOG;
     printf("\t[1]\tWhich Pin ? [0-11]\n");
     scanf(" %hhu",&entry);
+    scanf("%*[^\n]"); // Vide le buffer d'entree
     cmd->Argument[0] = entry;
     //    printf("[%d]\n",(int)(cmd->Argument[0]));
     
