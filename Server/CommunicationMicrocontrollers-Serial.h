@@ -30,6 +30,9 @@ int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid);
 // Retourne vrai si le int microcontrollerUid est disponible pour la communication.
 int microcontrollerIsAvailable(int microcontrollerUid);
 
+// Ferme la communication avec les microcontrolleurs serie en usb.
+int closeSerials();
+
 /***********/
 /* PRIVATE */
 /***********/

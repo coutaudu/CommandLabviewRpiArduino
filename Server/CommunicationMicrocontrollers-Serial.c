@@ -106,7 +106,26 @@ int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid){
 int microcontrollerIsAvailable(int microcontrollerUid){
     return ( microcontrollerFileDescriptorsTable[microcontrollerUid] != -1 );
 }
+
+int closeSerials(){
+    int i;
+    int fd;
+    int retval = 0;
     
+    for (i=0; i<MAX_MICROCONTROLLER_UID; i++){
+	fd=microcontrollerFileDescriptorsTable[i];
+	if ( fd != -1 ) {
+	    if(close(fd) != 0) {
+		printf("Error %i from close(%d): %s\n", fd, errno, strerror(errno));
+		retval = -1;
+	    } else {
+		microcontrollerFileDescriptorsTable[i] = -1;
+	    }
+	}
+    }
+    return retval;
+}
+
 /**************/
 /* PRIVATE    */
 /* FUNCTIONS  */

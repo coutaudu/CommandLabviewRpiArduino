@@ -32,10 +32,6 @@ int main(){
 	sendResponseToClient_UDP(&response);	
     };
 
-    // closeSerials
-    // TODO Funciton For i in 0 NB_MAX_SERIAL_DEVICES : close
-    //close(fdSerials[0]);
-    //close(fdSerials[1]);
     if(TRACE) printf("\tSerial closed by peer.\n");
     return 0;
 }
