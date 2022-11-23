@@ -24,8 +24,9 @@
 #define TRACE TRUE
 #define DEBUG FALSE
 
-extern int LOG_FILE_FD;
+#define NB_PINS_BY_BOARD 6
 
+extern int LOG_FILE_FD;
 
 // Retourne -1 si l'arduino n'a pas pu être connecté.
 // Retourne -2 si la pin cible est inconnue.
@@ -38,5 +39,11 @@ int routeCommand(command* cmd);
 // Envoie la requete
 // Recoit la reponse
 int handleCommand(command* request, command* response);
+
+// Présume 6 pins par microcontroller
+// Microcontroller UID[0] => Pins [0..5]
+// Microcontroller UID[1] => Pins [6..11]
+// Etc ...
+int buildRoutingTable();
 
 #endif

@@ -11,15 +11,6 @@
 /* HEADER  */
 /***********/
 
-// Nom de fichier typique: "/dev/ttyACM1"=12+1 char. 
-#define SIZE_MAX_FILE_NAME 32
-#define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
-#define NB_MAX_TRY_AGAIN_OPEN_SERIAL 3
-#define NB_MAX_MICROCONTROLLER 4
-// 255 car UID des boards arduino ecrit dans l'eeprom sur 8 bits.
-#define MAX_MICROCONTROLLER_UID 255
-
-
 // Ouvre et configure la ligne serie
 int openSerial(char* serialFile);
 
@@ -47,13 +38,27 @@ int writeCommand(command* cmd, int fd);
 // Trace le contenu de la table des microcontroleurs connectés
 void printDevicesNamesTable();
 
+/**********************/
+/* Macro              */
+/**********************/
+// Nom de fichier typique: "/dev/ttyACM1"=12+1 char. 
+#define SIZE_MAX_FILE_NAME 32
+#define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
+#define TEMPO_SET_SERIAL_PARAMETERS 3
+#define NB_MAX_TRY_AGAIN_OPEN_SERIAL 3
+#define NB_MAX_MICROCONTROLLER 4
+// 255 car UID des boards arduino ecrit dans l'eeprom sur 8 bits.
+#define MAX_MICROCONTROLLER_UID 255
+
+
+/**********************/
+/* Variables globales */
+/**********************/
 // TODO -> fichier .conf ?
 char* targetRepertory="/dev/";
 char* devicesBasename="ttyACM";
 int nbDevicesFound=0;
-
 char devicesNames[NB_MAX_MICROCONTROLLER][SIZE_MAX_FILE_NAME];
-
 int microcontrollerFileDescriptorsTable[MAX_MICROCONTROLLER_UID];
 
 /**************/
@@ -84,7 +89,6 @@ int initSerials(){
     return 0;    
 }
 
-
 int receiveCommandFromMicrocontroller_Serial(command* cmd, int microcontrollerUid){
     int n;
     int fd = microcontrollerFileDescriptorsTable[microcontrollerUid];
@@ -99,7 +103,10 @@ int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid){
     return n;
 }
 
-
+int microcontrollerIsAvailable(int microcontrollerUid){
+    return ( microcontrollerFileDescriptorsTable[microcontrollerUid] != -1 );
+}
+    
 /**************/
 /* PRIVATE    */
 /* FUNCTIONS  */
@@ -157,10 +164,9 @@ int openSerial(char* serialFile){
     }
 
     //    if(TRACE) printf("\n");
-
     // TODO ce délai semble nécessaire pour laisser le temps à la ligne de demarrer
     // correctement, sinon le premier write est perdu...
-    sleep(3);
+    sleep(TEMPO_SET_SERIAL_PARAMETERS);
     return fd;
 }
 
@@ -184,7 +190,7 @@ int identifyMicrocontrollerUid(int fdTemp){
 
 int readCommand(command* cmd, int fd){
     int n;
-    if (DEBUG) printf("Start rcv  %lu bytes:\n", (long unsigned)sizeof(command));
+    if (DEBUG) printf("Start rcv  %lu bytes from fd[%d]:\n", (long unsigned)sizeof(command),fd);
     n = rio_readn(fd, cmd, sizeof(command));
     if (DEBUG) printf("Rcvd %d bytes:\t\t",n);
     if (DEBUG) printCommand(cmd);
@@ -194,7 +200,7 @@ int readCommand(command* cmd, int fd){
 
 int writeCommand(command* cmd, int fd){
     int n;
-    if (DEBUG) printf("Start send %lu bytes:\n", (long unsigned)sizeof(command));
+    if (DEBUG) printf("Start send %lu bytes to fd[%d]:\n", (long unsigned)sizeof(command),fd);
     n = rio_writen(fd, cmd, sizeof(command));
     if (DEBUG) printf("Send %d bytes:\t",n);
     if (DEBUG) printCommand(cmd);

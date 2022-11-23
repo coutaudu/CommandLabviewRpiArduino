@@ -6,6 +6,10 @@
 
 #include "TemperatureControlRouter.h"
 
+// 255 car UID des pins définit sur sur 8 bits dans le format des commandes.
+#define MAX_PIN_UID 255
+
+int pinUidToMicrocontrollerUidRoutingTable[MAX_PIN_UID];
 
 int main(){
     command request, response;
@@ -14,9 +18,11 @@ int main(){
     
     initUDP();
     initSerials();
-
-    if(TRACE) printf("\tReady: Wait for commands.\n");
+    buildRoutingTable();
+    
+    if(TRACE) printf("\tReady: Wait for commands.\n\n");
     while (TRUE) {
+	if (DEBUG) printf("&response[%lu]\n",(long unsigned)&request);
 	if ( receiveCommandFromClient_UDP(&request) < 0){
 	    response = errorCommand();
 	} else {
@@ -35,52 +41,82 @@ int main(){
 }
 
 int handleCommand(command* request, command* response){
-    int arduinoUidTmp;
+    int microcontrollerUidTmp;
     if ( commandIsValid(request) < 0){
-	printf("Command is not valid.\n");
+	if (TRACE) printf("\t\tCommand is not valid.\n");
+	*response = errorCommand();
+	response->Argument[0] = -1;
 	return -1;
     }
-    if ( (arduinoUidTmp = routeCommand(request)) < 0 ){
-	printf("Failed routing command.\n");
-	return -1;
+    if ( (microcontrollerUidTmp = routeCommand(request)) < 0 ){
+	if (TRACE) printf("\t\tFailed routing command.\n");
+	*response = errorCommand();
+	response->Argument[0] = -2;
+	return -2;
     }
-    if ( sendCommandToMicrocontroller_Serial(request,arduinoUidTmp) < 0 ){
-	printf("Failed to send request command.\n");
-	return -1;
+    if ( sendCommandToMicrocontroller_Serial(request,microcontrollerUidTmp) < 0 ){
+	if (TRACE) printf("\t\tFailed to send request command.\n");
+	*response = errorCommand();
+	response->Argument[0] = -3;
+	return -3;
     }
-    if ( receiveCommandFromMicrocontroller_Serial(response,arduinoUidTmp) < 0 ){
-	printf("Failed to send response command.\n");
-	return -1;
+    if ( receiveCommandFromMicrocontroller_Serial(response,microcontrollerUidTmp) < 0 ){
+	if (TRACE) printf("\t\tFailed to receive response command.\n");
+	*response = errorCommand();
+	response->Argument[0] = -4;
+	return -4;
     }
     return 0; 
 }
 
+int buildRoutingTable(){
+    int i;
+    int microcontrollerUidTmp;
+    
+    if (TRACE) printf ("\t Building routing table:\n");
+    for (i=0; i<MAX_PIN_UID; i++) {
+	microcontrollerUidTmp=i/NB_PINS_BY_BOARD;
+	if ( microcontrollerIsAvailable(microcontrollerUidTmp) ){ 
+	    pinUidToMicrocontrollerUidRoutingTable[i]=microcontrollerUidTmp;
+	} else {
+	    pinUidToMicrocontrollerUidRoutingTable[i]=-1;
+	}
+    }
+    if (TRACE) {
+        printf ("\t\tPin UID: |");
+	for (i=0; i<MAX_PIN_UID; i++) {
+	    if (pinUidToMicrocontrollerUidRoutingTable[i]>=0) printf("%2d|",i);
+	}
+	printf ("\n");
+	printf ("\t\tMC  UID: |");
+	for (i=0; i<MAX_PIN_UID; i++) {
+	    if (pinUidToMicrocontrollerUidRoutingTable[i]>=0) printf("%2d|",pinUidToMicrocontrollerUidRoutingTable[i]);
+	}
+	printf ("\n\n");
+    }
+    return 0;
+}
 
 int routeCommand(command* cmd){
     unsigned char destinationPin;
-    int destinationArduinoUid = -1;
+    int destinationMicrocontrollerUid = -1;
     destinationPin = cmd->Argument[0];
-
-    // TODO remplacer par table de routage
-    if ( destinationPin < 6 ) {
-	cmd->Argument[0] -= 0;
-	destinationArduinoUid = 0;
-    } else if ( destinationPin < 12 ){
-	cmd->Argument[0] -= 6;
-	destinationArduinoUid = 1;
-    }else{
-	destinationArduinoUid = -2;
+    
+    destinationMicrocontrollerUid=pinUidToMicrocontrollerUidRoutingTable[destinationPin];
+    cmd->Argument[0] %= NB_PINS_BY_BOARD;
+    if (TRACE)	printf ("\tRoute command:\tPin UID [%3d] -> Microcontroller UID [%3d]\n", destinationPin, destinationMicrocontrollerUid);
+    
+    // TODO Gérer les débordements de pin UID dans module ? 
+    if (destinationMicrocontrollerUid == -1) {
+	logPrint(ERROR_ARDUINO_NOT_CONNECTED,destinationMicrocontrollerUid);
     }
 
-    if (destinationArduinoUid == -1) {
-	logPrint(ERROR_ARDUINO_NOT_CONNECTED,destinationArduinoUid);
-    }
+    /* // DEPRECATED */
+    /* if (destinationMicrocontrollerUid == -2) { */
+    /* 	logPrint(ERROR_PIN_NOT_ROUTABLE,(int)destinationPin); */
+    /* } */
     
-    if (destinationArduinoUid == -2) {
-	logPrint(ERROR_PIN_NOT_ROUTABLE,(int)destinationPin);
-    }
-    
-    return destinationArduinoUid;
+    return destinationMicrocontrollerUid;
 }
 
 

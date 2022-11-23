@@ -8,7 +8,8 @@
 
 int commandIsValid(command* cmd){
     int retval;
-    printCommand(cmd);
+    //if (TRACE) printCommand(cmd);
+    //if (TRACE) printf("\n");
     if ( cmd->Version == CURRENT_VERSION ) {
 	 if ( cmd->Function == GET_ANALOG || cmd->Function == SET_DIGITAL ) {
 	     retval = 0;
@@ -22,7 +23,7 @@ int commandIsValid(command* cmd){
 }
 
 void printCommand(command* cmd){
-    printf("CMD: V[%1d] F[%1d] A0[%3d] A1[%3d]",cmd->Version, cmd->Function, cmd->Argument[0], cmd->Argument[1]);
+    printf("V[%1d] F[%1d] A0[%3d] A1[%3d]",cmd->Version, cmd->Function, cmd->Argument[0], cmd->Argument[1]);
 }
 
 

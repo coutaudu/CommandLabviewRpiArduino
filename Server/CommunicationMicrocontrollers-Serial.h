@@ -27,6 +27,9 @@ int receiveCommandFromMicrocontroller_Serial(command* cmd, int microcontrollerUi
 // En binaire.
 int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid);
 
+// Retourne vrai si le int microcontrollerUid est disponible pour la communication.
+int microcontrollerIsAvailable(int microcontrollerUid);
+
 /***********/
 /* PRIVATE */
 /***********/
