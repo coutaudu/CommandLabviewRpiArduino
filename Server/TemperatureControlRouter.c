@@ -8,48 +8,47 @@
 
 
 int main(){
-    int fdSerials[NB_MAX_SERIAL_DEVICES];
     command request, response;
     
     logInit("/tmp/TemperatureControlRouter.log");
     
     initUDP();
-    initSerials(fdSerials);
+    initSerials();
 
     if(TRACE) printf("\tReady: Wait for commands.\n");
     while (TRUE) {
 	if ( receiveCommandFromClient_UDP(&request) < 0){
 	    response = errorCommand();
 	} else {
-	    handleCommand(&request, &response, fdSerials );
+	    handleCommand(&request, &response);
 	    if (TRACE) traceCommand(&request, &response);
 	}
 	sendResponseToClient_UDP(&response);	
     };
 
     // closeSerials
-    // TODO For i in 0 NB_MAX_SERIAL_DEVICES : close
-    close(fdSerials[0]);
-    close(fdSerials[1]);
+    // TODO Funciton For i in 0 NB_MAX_SERIAL_DEVICES : close
+    //close(fdSerials[0]);
+    //close(fdSerials[1]);
     if(TRACE) printf("\tSerial closed by peer.\n");
     return 0;
 }
 
-int handleCommand(command* request, command* response, int* fdSerials){
-    int fdTmp;
+int handleCommand(command* request, command* response){
+    int arduinoUidTmp;
     if ( commandIsValid(request) < 0){
 	printf("Command is not valid.\n");
 	return -1;
     }
-    if ( (fdTmp = routeCommand(request, fdSerials)) < 0 ){
-	printf("Pin is not known.\n");
+    if ( (arduinoUidTmp = routeCommand(request)) < 0 ){
+	printf("Failed routing command.\n");
 	return -1;
     }
-    if ( sendCommandToMicrocontroller_Serial(request, fdTmp) < 0 ){
+    if ( sendCommandToMicrocontroller_Serial(request,arduinoUidTmp) < 0 ){
 	printf("Failed to send request command.\n");
 	return -1;
     }
-    if ( receiveCommandFromMicrocontroller_Serial(response, fdTmp) < 0 ){
+    if ( receiveCommandFromMicrocontroller_Serial(response,arduinoUidTmp) < 0 ){
 	printf("Failed to send response command.\n");
 	return -1;
     }
@@ -57,33 +56,31 @@ int handleCommand(command* request, command* response, int* fdSerials){
 }
 
 
-int routeCommand(command* cmd, int* fdSerials){
-    int retval;
+int routeCommand(command* cmd){
     unsigned char destinationPin;
     int destinationArduinoUid = -1;
     destinationPin = cmd->Argument[0];
+
+    // TODO remplacer par table de routage
     if ( destinationPin < 6 ) {
 	cmd->Argument[0] -= 0;
 	destinationArduinoUid = 0;
-	retval = fdSerials[destinationArduinoUid];
     } else if ( destinationPin < 12 ){
 	cmd->Argument[0] -= 6;
 	destinationArduinoUid = 1;
-	retval = fdSerials[destinationArduinoUid];
     }else{
-	retval = -2;
+	destinationArduinoUid = -2;
     }
 
-    
-    if (retval == -1) {
+    if (destinationArduinoUid == -1) {
 	logPrint(ERROR_ARDUINO_NOT_CONNECTED,destinationArduinoUid);
     }
     
-    if (retval == -2) {
+    if (destinationArduinoUid == -2) {
 	logPrint(ERROR_PIN_NOT_ROUTABLE,(int)destinationPin);
     }
     
-    return retval;
+    return destinationArduinoUid;
 }
 
 

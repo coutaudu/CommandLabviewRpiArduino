@@ -29,16 +29,14 @@ extern int LOG_FILE_FD;
 
 // Retourne -1 si l'arduino n'a pas pu être connecté.
 // Retourne -2 si la pin cible est inconnue.
-// Retourne le fd destination si OK.
-int routeCommand(command* cmd, int* fdSerials);
+// Retourne le uid destination si OK.
+int routeCommand(command* cmd);
 
 // Gere la communication serie avec les micro-controleurs.
 // Verifie la commande.
 // Identifie le micro controlleur de destination
 // Envoie la requete
 // Recoit la reponse
-int handleCommand(command* request, command* response, int* fdSerials);
-
-
+int handleCommand(command* request, command* response);
 
 #endif

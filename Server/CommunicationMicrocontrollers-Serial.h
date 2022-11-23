@@ -12,49 +12,25 @@
 #include <dirent.h> 
 #include <termios.h>
 
-#define SIZE_MAX_FILE_NAME 512
-#define TEMPO_TRY_AGAIN_OPEN_SERIAL 3
-#define NB_MAX_TRY_AGAIN_OPEN_SERIAL 3
-#define NB_MAX_SERIAL_DEVICES 3
+/***********/
+/* PUBLIC  */
+/***********/
 
+// Init les x Files Descriptors pour la communication serie avec les 2 cartes arduino
+int initSerials();
 
-// Init les 2 files discriptors pour la communication serie avec les 2 cartes arduino
-int initSerials(int* fd);
-
-// Ouvre et configure la ligne serie
-int openSerial(char* serialFile);
-
-// Cherche la disponibilité des devices.
-// Par exemple au format /dev/ttyACM*
-int detectAvailableDevices(char* basename, char* repertory);
-
-// Prepare les parametres de communications serie.
-// fd est le descripteur de fichier vers le pseudo fichier tty
-// Il doit être ouvert.
-int setSerialParameters(int fd);
-
-// Interroge l'arduino au bout du fil pour obtenir son UID
-// (NB: Le UID doit etre inscrit manuellement de l'EEPROM)
-// Si le arduino est bien reconnu, son fileDescritor est inscrit
-// dans le table fd en indice=UID.
-int identifyArduinoOnSerial(int fdTemp, int* fd);
-
-// Reçoit une commande (une réponse donc)) sur la ligne série.
+// Reçoit une commande (une réponse donc)) du micro controller sur la ligne série.
 // En binaire.
-int receiveCommandFromMicrocontroller_Serial(command* cmd, int fdSerial);
+int receiveCommandFromMicrocontroller_Serial(command* cmd, int microcontrollerUid);
 
-// Envoie une commande sur la ligne série.
+// Envoie une commande au microcontroller sur la ligne série.
 // En binaire.
-int sendCommandToMicrocontroller_Serial(command* cmd, int fdDestination);
+int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid);
 
-// Trace le contenue de la table des microcontroleurs connectés
-void printDevicesNamesTable();
+/***********/
+/* PRIVATE */
+/***********/
 
-// Gere la communication serie avec les micro-controleurs.
-// Verifie la commande.
-// Identifie le micro controlleur de destination
-// Envoie la requete
-// Recoit la reponse
-//int transmitCommandSerial(command* request, command* response, int* fdSerials);
+// Dans le fichier .c
 
 #endif
