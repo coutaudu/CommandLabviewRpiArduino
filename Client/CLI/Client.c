@@ -66,17 +66,18 @@ int getCommandCLI(command* cmd){
 }
 
 int commandSetDigitalPWM(command* cmd){
-    char pin;
+    unsigned char pin;
     unsigned char value;
 
     printf("\t[2]\tWhich Pin ? [0-11]\n");
-    scanf(" %c",&pin);
+    scanf(" %hhu",&pin);
     printf("\t[2]\tValue ? [0-255]\n");
+    scanf("%*[^\n]"); // Vide le buffer d'entree
     scanf(" %hhu",&value);
-    printf("\t[2]\tD[%c]<-%3d\n",pin,value);
+    printf("\t[2]\tD[%hhu]<-%3d\n",pin,value);
     cmd->Version  = CURRENT_VERSION;
     cmd->Function = SET_DIGITAL;
-    cmd->Argument[0] = pin - '0';
+    cmd->Argument[0] = pin;
     cmd->Argument[1] = value;
     //    printf("[%d]\n",(int)(cmd->Argument[0]));
     return 0;
@@ -96,13 +97,13 @@ int commandGetUID(command* cmd){
 
 
 int commandGetAnalog(command* cmd){
-    char entry;
+    unsigned char entry;
     
     cmd->Version  = CURRENT_VERSION;
     cmd->Function = GET_ANALOG;
     printf("\t[1]\tWhich Pin ? [0-11]\n");
-    scanf(" %c",&entry);
-    cmd->Argument[0] = entry - '0';
+    scanf(" %hhu",&entry);
+    cmd->Argument[0] = entry;
     //    printf("[%d]\n",(int)(cmd->Argument[0]));
     
     return 0;
