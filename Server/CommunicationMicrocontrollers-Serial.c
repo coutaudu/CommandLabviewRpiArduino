@@ -60,6 +60,7 @@ char* devicesBasename="ttyACM";
 int nbDevicesFound=0;
 char devicesNames[NB_MAX_MICROCONTROLLER][SIZE_MAX_FILE_NAME];
 int microcontrollerFileDescriptorsTable[MAX_MICROCONTROLLER_UID];
+char* microcontrollerUidFilenameLookupTable[MAX_MICROCONTROLLER_UID];
 
 /**************/
 /* PUBLIC     */
@@ -67,7 +68,8 @@ int microcontrollerFileDescriptorsTable[MAX_MICROCONTROLLER_UID];
 /**************/
 
 int initSerials(){
-    int fdTemp;
+    int fd;
+    int microcontrollerUid;
     int i;
 
     // Initialise à -1 pour distinguer les file descriptor non-utilisé/invalides
@@ -81,11 +83,22 @@ int initSerials(){
     detectAvailableDevices(devicesBasename,targetRepertory);
 
     for (i=0; i<nbDevicesFound; i++){
-	fdTemp = openSerial(devicesNames[i]);
-	identifyMicrocontrollerUid(fdTemp);
+	fd = openSerial(devicesNames[i]);
+	microcontrollerUid = identifyMicrocontrollerUid(fd);	
+	microcontrollerUidFilenameLookupTable[microcontrollerUid] = devicesNames[i];
     }
-    
-    if(TRACE) printf("\n");
+
+    if (TRACE) {
+	printf("\n\tMicrocontroller UID to Filename Lookup Table:\n");
+	for (i=0; i<MAX_MICROCONTROLLER_UID; i++){
+	    fd = microcontrollerFileDescriptorsTable[i];
+	    if ( fd != -1 ) {	    
+		printf("\t\tMC UID: [%d] <-> Filename: [%s]\n",i,microcontrollerUidFilenameLookupTable[i]);
+	    }
+	}
+	printf("\n");
+    }
+
     return 0;    
 }
 
@@ -204,7 +217,7 @@ int identifyMicrocontrollerUid(int fdTemp){
     microcontrollerFileDescriptorsTable[microcontrollerUid] = fdTemp;
     if (TRACE) printf("Microcontroller UID [%1u]\n",microcontrollerUid);
 
-    return 0;
+    return microcontrollerUid;
 }
 
 int readCommand(command* cmd, int fd){
