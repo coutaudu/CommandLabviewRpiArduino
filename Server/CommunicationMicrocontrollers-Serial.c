@@ -35,8 +35,6 @@ int readCommand(command* cmd, int fdSerial);
 // Ecrit la commande dans le File Descriptor.
 int writeCommand(command* cmd, int fd);
 
-// Trace le contenu de la table des microcontroleurs connectés
-void printDevicesNamesTable();
 
 /**********************/
 /* Macro              */
@@ -68,25 +66,62 @@ char* microcontrollerUidFilenameLookupTable[MAX_MICROCONTROLLER_UID];
 /**************/
 
 int initSerials(){
+    DIR *targetRepertoryStream;
+    struct dirent *fileInfosStruct;
+    int strlenRepertory;
+    int strlenBasename;
     int fd;
-    int microcontrollerUid;
     int i;
+    int microcontrollerUid;
+
+    
+    if (TRACE) printf("\tInitialize serial communication with microcontrollers:\n");
 
     // Initialise à -1 pour distinguer les file descriptor non-utilisé/invalides
     for (i=0; i<MAX_MICROCONTROLLER_UID; i++){
 	microcontrollerFileDescriptorsTable[i]=-1;
     }
-
+    
     // Parcours la liste des pseudos fichiers correspondant à des arduino branchés en USB
     // dans le répertoire targetRepertory (/dev/)
     // nom commencant par devicesBasename (ttyACM)
-    detectAvailableDevices(devicesBasename,targetRepertory);
+    strlenRepertory = strlen(targetRepertory);
+    strlenBasename = strlen(devicesBasename);
 
-    for (i=0; i<nbDevicesFound; i++){
-	fd = openSerial(devicesNames[i]);
-	microcontrollerUid = identifyMicrocontrollerUid(fd);	
-	microcontrollerUidFilenameLookupTable[microcontrollerUid] = devicesNames[i];
+    targetRepertoryStream = opendir(targetRepertory);
+    if (targetRepertoryStream == NULL){
+	if(TRACE) printf("\t\tFailed. Returned NULL.\n");
+	if(TRACE) printf("\t\t[%s]\n", strerror(errno));
+	return -1;
+    } else { // targetRepertoryStream != NULL
+	while ((fileInfosStruct = readdir(targetRepertoryStream)) != NULL) {
+	    if ((strlen(fileInfosStruct->d_name)+strlenRepertory)>=SIZE_MAX_FILE_NAME){
+		if(TRACE) printf("[ERR] Error: [%s] is too long for SIZE_MAX_FILE_NAME[%d].\n",fileInfosStruct->d_name,SIZE_MAX_FILE_NAME);
+	    }
+	    else if (strncmp(devicesBasename,fileInfosStruct->d_name,strlenBasename)==0){
+		// TODO Verifier si deja present ou non
+		// TODO inscrire dans slot vide de devicesNames
+ 		strcpy(&(devicesNames[nbDevicesFound][0]),targetRepertory);
+		strcat((char*)&devicesNames[nbDevicesFound],fileInfosStruct->d_name);
+		if (TRACE) printf("\t\tFound [%s]\n",((char*)&devicesNames[nbDevicesFound]));
+		/*****/
+		fd = openSerial(devicesNames[nbDevicesFound]);
+		microcontrollerUid = identifyMicrocontrollerUid(fd);
+		microcontrollerUidFilenameLookupTable[microcontrollerUid] = devicesNames[nbDevicesFound];
+		if (TRACE) printf("\n");
+		/*****/
+		nbDevicesFound++;
+	    }
+	}
+	closedir(targetRepertoryStream);
     }
+
+    ////////////////////////////////////
+    /* for (i=0; i<nbDevicesFound; i++){ */
+    /* 	fd = openSerial(devicesNames[i]); */
+    /* 	microcontrollerUid = identifyMicrocontrollerUid(fd); */
+    /* 	microcontrollerUidFilenameLookupTable[microcontrollerUid] = devicesNames[i]; */
+    /* } */
 
     if (TRACE) {
 	printf("\n\tMicrocontroller UID to Filename Lookup Table:\n");
@@ -102,6 +137,7 @@ int initSerials(){
     return 0;    
 }
 
+
 int receiveCommandFromMicrocontroller_Serial(command* cmd, int microcontrollerUid){
     int n;
     int fd = microcontrollerFileDescriptorsTable[microcontrollerUid];
@@ -109,12 +145,32 @@ int receiveCommandFromMicrocontroller_Serial(command* cmd, int microcontrollerUi
     return n;
 }
 
+
 int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid){
     int n;
     int fd = microcontrollerFileDescriptorsTable[microcontrollerUid];
     n = writeCommand(cmd,fd);
+    if ( n==-1 ) {
+	if( errno==EIO ){
+	    if (TRACE) printf ("\tMicrocontroller[%d]: %s (fd[%d]) has been unplugged.",microcontrollerUid,microcontrollerUidFilenameLookupTable[microcontrollerUid],fd) ;
+	    // Close fd
+	    if(close(fd) != 0) {
+		if (TRACE) if (TRACE) printf("[ERR]  %i from close(%d): %s\n", fd, errno, strerror(errno));
+	    } else {
+		// Remove from microcontrollerFileDescriptorsTable
+		microcontrollerFileDescriptorsTable[microcontrollerUid] = -1;
+	    }
+	    // Clear devicesNames entry
+	    microcontrollerUidFilenameLookupTable[microcontrollerUid][0]='\0';
+	    // Remove from microcontrollerUidFilenameLookupTable
+	    microcontrollerUidFilenameLookupTable[microcontrollerUid] = NULL;
+	} 
+	if (DEBUG) if (TRACE) printf("[ERR]  %i from syscall write: %s\n", errno, strerror(errno));
+
+    }
     return n;
 }
+
 
 int microcontrollerIsAvailable(int microcontrollerUid){
     return ( microcontrollerFileDescriptorsTable[microcontrollerUid] != -1 );
@@ -129,7 +185,7 @@ int closeSerials(){
 	fd=microcontrollerFileDescriptorsTable[i];
 	if ( fd != -1 ) {
 	    if(close(fd) != 0) {
-		printf("Error %i from close(%d): %s\n", fd, errno, strerror(errno));
+		if (TRACE) printf("[ERR] Error %i from close(%d): %s\n", fd, errno, strerror(errno));
 		retval = -1;
 	    } else {
 		microcontrollerFileDescriptorsTable[i] = -1;
@@ -144,54 +200,24 @@ int closeSerials(){
 /* FUNCTIONS  */
 /**************/
 
-int detectAvailableDevices(char* basename, char* repertory){
-    DIR *targetRepertoryStream;
-    struct dirent *fileInfosStruct;
-    int strlenRepertory = strlen(repertory);
-    int strlenBasename = strlen(basename);
-    
-    targetRepertoryStream = opendir(repertory);
-    if (targetRepertoryStream == NULL){
-	if(TRACE) printf("\t\tFailed. Returned NULL.\n");
-	if(TRACE) printf("\t\t[%s]\n", strerror(errno));
-	return -1;
-    } else { // targetRepertoryStream != NULL
-	while ((fileInfosStruct = readdir(targetRepertoryStream)) != NULL) {
-	    if ((strlen(fileInfosStruct->d_name)+strlenRepertory)>=SIZE_MAX_FILE_NAME){
-		if(TRACE) printf("\t\tError: [%s] is too long for SIZE_MAX_FILE_NAME[%d].\n",fileInfosStruct->d_name,SIZE_MAX_FILE_NAME);
-		return -1;
-	    }
-	    if (strncmp(basename,fileInfosStruct->d_name,strlenBasename)==0){
- 		strcpy(&(devicesNames[nbDevicesFound][0]),repertory);
-		strcat((char*)&devicesNames[nbDevicesFound],fileInfosStruct->d_name);
-		nbDevicesFound++;
-	    }
-	}
-	if(TRACE) printDevicesNamesTable();
-	closedir(targetRepertoryStream);
-	return 0;
-    }
-}
-
-
 int openSerial(char* serialFile){
     int fd = -1;
     int tryAgainCounter = 0;
     
-    if(TRACE) printf("\n\tOpen Serial [%s]\n",serialFile);
+    if(TRACE) printf("\t\tOpen Serial [%s]\n",serialFile);
     while ( (fd = open(serialFile, O_RDWR, 0))<0
 	    && tryAgainCounter < NB_MAX_TRY_AGAIN_OPEN_SERIAL) {
-	if(TRACE) printf("\t\tFailed. Returned FileDescriptor [%d].\n", fd);
-	if(TRACE) printf("\t\t[%s]\n", strerror(errno));
-	if(TRACE) printf("\t\tWill try again in %d seconds.\n",TEMPO_TRY_AGAIN_OPEN_SERIAL);
+	if(TRACE) printf("\t\t\tFailed. Returned FileDescriptor [%d].\n", fd);
+	if(TRACE) printf("\t\t\t[%s]\n", strerror(errno));
+	if(TRACE) printf("\t\t\tWill try again in %d seconds.\n",TEMPO_TRY_AGAIN_OPEN_SERIAL);
 	tryAgainCounter++;
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
-    if(TRACE) printf("\t\tOpen Serial successful.\n");
-    if(TRACE) printf("\t\tFileDescriptor [%d]\n", fd);
+    if(TRACE) printf("\t\t\tOpen Serial successful.\n");
+    if(TRACE) printf("\t\t\tFileDescriptor [%d]\n", fd);
 
     while (setSerialParameters(fd)!=0){
-	printf("Error setting Serial Parameters.\n");
+	if (TRACE) printf("[ERR] Error setting Serial Parameters.\n");
 	sleep(TEMPO_TRY_AGAIN_OPEN_SERIAL);
     }
 
@@ -208,7 +234,7 @@ int identifyMicrocontrollerUid(int fdTemp){
     command response;
     unsigned char microcontrollerUid;
 
-    if (TRACE) printf("\t\tIdentifying... ");
+    if (TRACE) printf("\t\t\tIdentifying... ");
     if (TRACE) fflush(stdout);
     request = requestUidCommand();
     writeCommand(&request, fdTemp);
@@ -243,13 +269,16 @@ int writeCommand(command* cmd, int fd){
 
 int setSerialParameters(int fd){
     struct termios term;
+
+    if(TRACE) printf("\t\t\tSet serial parameters FD[%2d]...", fd);
+
     if(tcgetattr(fd, &term) != 0) {
-	printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+	if (TRACE) printf("\n[ERR] Error %i from tcgetattr: %s\n", errno, strerror(errno));
 	return -1;
     }
     // TODO param en .conf ?
     if (cfsetspeed(&term, B115200) != 0 ){
-	printf("Error %i from cfsetspeed: %s\n", errno, strerror(errno));
+	if (TRACE) printf("\n[ERR]  %i from cfsetspeed: %s\n", errno, strerror(errno));
 	return -1;
     }
     // Explications disponibles ici: https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
@@ -264,19 +293,13 @@ int setSerialParameters(int fd){
     // cfmakeraw(&term); Serai potentiellemnt suffisant
     /****************************************************/
     if (tcsetattr(fd, TCSANOW, &term) != 0) {
-	printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+	if (TRACE) printf("\n[ERR]  %i from tcsetattr: %s\n", errno, strerror(errno));
 	return -1;
     }
+    if(TRACE) printf(" OK.\n");
     return 0;
 }
 
 
-void printDevicesNamesTable(){
-    int i;
-    printf("\tDetected Devices:\n");
-    for (i=0; i<nbDevicesFound;i++){
-	printf("\t\t[%s]\n",((char*)&devicesNames[i]));
-    }
-}
 
 

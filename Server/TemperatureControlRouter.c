@@ -13,7 +13,7 @@ int pinUidToMicrocontrollerUidRoutingTable[MAX_PIN_UID];
 
 int main(){
     command request, response;
-    
+
     logInit("/tmp/TemperatureControlRouter.log");
     
     initUDP();
@@ -22,7 +22,6 @@ int main(){
     
     if(TRACE) printf("\tReady: Wait for commands.\n\n");
     while (TRUE) {
-	if (DEBUG) printf("&response[%lu]\n",(long unsigned)&request);
 	if ( receiveCommandFromClient_UDP(&request) < 0){
 	    response = errorCommand();
 	} else {
@@ -52,6 +51,7 @@ int handleCommand(command* request, command* response){
     }
     if ( sendCommandToMicrocontroller_Serial(request,microcontrollerUidTmp) < 0 ){
 	if (TRACE) printf("\t\tFailed to send request command.\n");
+	// Remove from routTable ?
 	*response = errorCommand();
 	response->Argument[0] = -3;
 	return -3;
