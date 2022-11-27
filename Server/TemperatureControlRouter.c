@@ -69,7 +69,7 @@ int buildRoutingTable(){
     int i;
     int microcontrollerUidTmp;
     
-    if (TRACE) printf ("\t Building routing table:\n");
+    if (TRACE) printf ("\tBuilding routing table:\n");
     for (i=0; i<MAX_PIN_UID; i++) {
 	microcontrollerUidTmp=i/NB_PINS_BY_BOARD;
 	if ( microcontrollerIsAvailable(microcontrollerUidTmp) ){ 

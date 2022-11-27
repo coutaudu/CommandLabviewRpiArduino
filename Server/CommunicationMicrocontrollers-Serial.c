@@ -35,6 +35,12 @@ int readCommand(command* cmd, int fdSerial);
 // Ecrit la commande dans le File Descriptor.
 int writeCommand(command* cmd, int fd);
 
+// Trace la table lookup  arduino UID -> Filename
+void printMicrocontrollerUidToFilenameLookupTable();
+
+// Ajoute un arduino branché en USB aux structures interne du systeme.
+int addDeviceFromFile(char* fileName);
+
 
 /**********************/
 /* Macro              */
@@ -55,25 +61,43 @@ int writeCommand(command* cmd, int fd);
 // TODO -> fichier .conf ?
 char* targetRepertory="/dev/";
 char* devicesBasename="ttyACM";
-int nbDevicesFound=0;
 char devicesNames[NB_MAX_MICROCONTROLLER][SIZE_MAX_FILE_NAME];
 int microcontrollerFileDescriptorsTable[MAX_MICROCONTROLLER_UID];
 char* microcontrollerUidFilenameLookupTable[MAX_MICROCONTROLLER_UID];
+
 
 /**************/
 /* PUBLIC     */
 /* FUNCTIONS  */
 /**************/
 
+int isAMicrocontroller(char* fileName){
+    return (strncmp(devicesBasename,fileName,strlen(devicesBasename)) == 0 );
+}
+
+int microcontrollerIsConnected(char* fileName){
+    int retval,i;
+    char buffer[SIZE_MAX_FILE_NAME];
+    strcpy(buffer,targetRepertory);
+    strcat(buffer,fileName);
+    
+    i=0;
+    retval = FALSE;
+    while (i<NB_MAX_MICROCONTROLLER && !retval) {
+	retval = (strcmp(devicesNames[i],buffer) == 0 );
+	i++;
+    }
+    if (retval && TRACE) {
+	printf("\t\t[%s] already connected.\n", buffer);
+    }
+    return retval;
+}
+
 int initSerials(){
     DIR *targetRepertoryStream;
     struct dirent *fileInfosStruct;
-    int strlenRepertory;
-    int strlenBasename;
-    int fd;
     int i;
-    int microcontrollerUid;
-
+    char* fileName;
     
     if (TRACE) printf("\tInitialize serial communication with microcontrollers:\n");
 
@@ -81,36 +105,21 @@ int initSerials(){
     for (i=0; i<MAX_MICROCONTROLLER_UID; i++){
 	microcontrollerFileDescriptorsTable[i]=-1;
     }
-    
+
     // Parcours la liste des pseudos fichiers correspondant à des arduino branchés en USB
     // dans le répertoire targetRepertory (/dev/)
     // nom commencant par devicesBasename (ttyACM)
-    strlenRepertory = strlen(targetRepertory);
-    strlenBasename = strlen(devicesBasename);
-
     targetRepertoryStream = opendir(targetRepertory);
     if (targetRepertoryStream == NULL){
-	if(TRACE) printf("\t\tFailed. Returned NULL.\n");
-	if(TRACE) printf("\t\t[%s]\n", strerror(errno));
+	if(TRACE) printf("\t\tFailed to open repertory [%s]. Errno[%d]:%s.\n", targetRepertory, errno, strerror(errno));
 	return -1;
     } else { // targetRepertoryStream != NULL
 	while ((fileInfosStruct = readdir(targetRepertoryStream)) != NULL) {
-	    if ((strlen(fileInfosStruct->d_name)+strlenRepertory)>=SIZE_MAX_FILE_NAME){
-		if(TRACE) printf("[ERR] Error: [%s] is too long for SIZE_MAX_FILE_NAME[%d].\n",fileInfosStruct->d_name,SIZE_MAX_FILE_NAME);
-	    }
-	    else if (strncmp(devicesBasename,fileInfosStruct->d_name,strlenBasename)==0){
-		// TODO Verifier si deja present ou non
-		// TODO inscrire dans slot vide de devicesNames
- 		strcpy(&(devicesNames[nbDevicesFound][0]),targetRepertory);
-		strcat((char*)&devicesNames[nbDevicesFound],fileInfosStruct->d_name);
-		if (TRACE) printf("\t\tFound [%s]\n",((char*)&devicesNames[nbDevicesFound]));
-		/*****/
-		fd = openSerial(devicesNames[nbDevicesFound]);
-		microcontrollerUid = identifyMicrocontrollerUid(fd);
-		microcontrollerUidFilenameLookupTable[microcontrollerUid] = devicesNames[nbDevicesFound];
+	    fileName = fileInfosStruct->d_name;		
+	    if (isAMicrocontroller(fileName) && !microcontrollerIsConnected(fileName)){
+		if (TRACE) printf("\t\tFound [%s]\n",fileName);
+		addDeviceFromFile(fileName);
 		if (TRACE) printf("\n");
-		/*****/
-		nbDevicesFound++;
 	    }
 	}
 	closedir(targetRepertoryStream);
@@ -122,18 +131,9 @@ int initSerials(){
     /* 	microcontrollerUid = identifyMicrocontrollerUid(fd); */
     /* 	microcontrollerUidFilenameLookupTable[microcontrollerUid] = devicesNames[i]; */
     /* } */
-
-    if (TRACE) {
-	printf("\n\tMicrocontroller UID to Filename Lookup Table:\n");
-	for (i=0; i<MAX_MICROCONTROLLER_UID; i++){
-	    fd = microcontrollerFileDescriptorsTable[i];
-	    if ( fd != -1 ) {	    
-		printf("\t\tMC UID: [%d] <-> Filename: [%s]\n",i,microcontrollerUidFilenameLookupTable[i]);
-	    }
-	}
-	printf("\n");
-    }
-
+    ////////////////////////////////////
+    if (TRACE) printMicrocontrollerUidToFilenameLookupTable();
+    
     return 0;    
 }
 
@@ -152,7 +152,7 @@ int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid){
     n = writeCommand(cmd,fd);
     if ( n==-1 ) {
 	if( errno==EIO ){
-	    if (TRACE) printf ("\tMicrocontroller[%d]: %s (fd[%d]) has been unplugged.",microcontrollerUid,microcontrollerUidFilenameLookupTable[microcontrollerUid],fd) ;
+	    if (TRACE) printf ("\tMicrocontroller[%d]: %s (fd[%d]) has been unplugged.\n",microcontrollerUid,microcontrollerUidFilenameLookupTable[microcontrollerUid],fd) ;
 	    // Close fd
 	    if(close(fd) != 0) {
 		if (TRACE) if (TRACE) printf("[ERR]  %i from close(%d): %s\n", fd, errno, strerror(errno));
@@ -300,6 +300,52 @@ int setSerialParameters(int fd){
     return 0;
 }
 
+void printMicrocontrollerUidToFilenameLookupTable(){
+    int i;
+    int fd;
+    
+    printf("\n\tMicrocontroller UID to Filename Lookup Table:\n");
+    for (i=0; i<MAX_MICROCONTROLLER_UID; i++){
+	fd = microcontrollerFileDescriptorsTable[i];
+	if ( fd != -1 ) {	    
+	    printf("\t\tMC UID: [%d] <-> Filename: [%s]\n",i,microcontrollerUidFilenameLookupTable[i]);
+	}
+    }
+    printf("\n");
+}
 
+int addDeviceFromFile(char* fileName){
+    int strlenRepertory = strlen(targetRepertory);
+    int fd;
+    int microcontrollerUid;
+    int i;
+    int availableSlot;
+    
+    if ((strlen(fileName)+strlenRepertory)>=SIZE_MAX_FILE_NAME){
+	if(TRACE) printf("\t\t[ERR] Error: [%s] is too long for SIZE_MAX_FILE_NAME[%d].\n",fileName,SIZE_MAX_FILE_NAME);
+	return -1;
+    }
 
+    // TODO Verifier si deja present ou non
+    availableSlot=-1;
+    i=0;
+    while (i<NB_MAX_MICROCONTROLLER && availableSlot==-1) {
+	//	printf("devicesNames[%d]=\"%s\"\n",i, devicesNames[i]);
+	if (devicesNames[i][0]==0) {
+	    availableSlot=i;
+	}
+	i++;
+    }
 
+    if (availableSlot==-1){
+	if(TRACE) printf("\t\t[ERR] Error too much devices already connected (%d).\n",i);
+	return -1;
+    }
+    strcpy(devicesNames[availableSlot],targetRepertory);
+    strcat(devicesNames[availableSlot],fileName);
+    fd = openSerial(devicesNames[availableSlot]);
+    microcontrollerUid = identifyMicrocontrollerUid(fd);
+    microcontrollerUidFilenameLookupTable[microcontrollerUid]=devicesNames[availableSlot];
+
+    return 0;    
+}
