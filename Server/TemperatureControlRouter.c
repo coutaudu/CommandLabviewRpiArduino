@@ -15,9 +15,8 @@ int main(){
     command request, response;
 
     logInit("/tmp/TemperatureControlRouter.log");
-    
     initUDP();
-    initSerials();
+    updateSerials();
     buildRoutingTable();
     
     if(TRACE) printf("\tReady: Wait for commands.\n\n");
@@ -26,7 +25,6 @@ int main(){
 	    response = errorCommand();
 	} else {
 	    handleCommand(&request, &response);
-	    if (TRACE) traceCommand(&request, &response);
 	}
 	sendResponseToClient_UDP(&response);	
     };
@@ -37,32 +35,42 @@ int main(){
 
 int handleCommand(command* request, command* response){
     int microcontrollerUidTmp;
+    int retval=0;
     if ( commandIsValid(request) < 0){
 	if (TRACE) printf("\t\tCommand is not valid.\n");
 	*response = errorCommand();
 	response->Argument[0] = -1;
-	return -1;
+	retval=-1;
     }
-    if ( (microcontrollerUidTmp = routeCommand(request)) < 0 ){
+    else if ( (microcontrollerUidTmp = routeCommand(request)) < 0 ){
 	if (TRACE) printf("\t\tFailed routing command.\n");
 	*response = errorCommand();
 	response->Argument[0] = -2;
-	return -2;
+	retval=-2;
     }
-    if ( sendCommandToMicrocontroller_Serial(request,microcontrollerUidTmp) < 0 ){
+    else if ( sendCommandToMicrocontroller_Serial(request,microcontrollerUidTmp) < 0 ){
 	if (TRACE) printf("\t\tFailed to send request command.\n");
 	// Remove from routTable ?
 	*response = errorCommand();
 	response->Argument[0] = -3;
-	return -3;
+	retval=-3;
     }
-    if ( receiveCommandFromMicrocontroller_Serial(response,microcontrollerUidTmp) < 0 ){
+    else if ( receiveCommandFromMicrocontroller_Serial(response,microcontrollerUidTmp) < 0 ){
 	if (TRACE) printf("\t\tFailed to receive response command.\n");
 	*response = errorCommand();
 	response->Argument[0] = -4;
-	return -4;
+	retval=-4;
     }
-    return 0; 
+    
+    if (TRACE) traceCommand(request, response);
+    
+    if ( retval == -3 || retval == -2 ){
+	if (TRACE) printf("\tMicrocontroller not connected. Try update...\n\n");
+	updateSerials();
+	buildRoutingTable();
+    }
+
+    return retval; 
 }
 
 int buildRoutingTable(){

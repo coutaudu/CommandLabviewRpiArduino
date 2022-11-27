@@ -17,7 +17,7 @@
 /***********/
 
 // Init les x Files Descriptors pour la communication serie avec les 2 cartes arduino
-int initSerials();
+int updateSerials();
 
 // Reçoit une commande (une réponse donc)) du micro controller sur la ligne série.
 // En binaire.
