@@ -41,7 +41,6 @@ void printMicrocontrollerUidToFilenameLookupTable();
 // Ajoute un arduino branché en USB aux structures interne du systeme.
 int addDeviceFromFile(char* fileName);
 
-
 // Renvoie vrai si le fichier correspond à un arduino connecté en USB.
 int isAMicrocontroller(char* fileName);
 
@@ -55,6 +54,13 @@ void resetMicrocontrollerFileDescriptorsTable();
 // Les connecte au systeme si disponibles.
 int detectAndConnectMicrocontrollers();
 
+// Parcours la table des noms de fichiers symboliques d'arduino connectés en USB
+// et retour l'index de la premiere ligne vide
+int findAvailableSlotInDeviceNamesTable();
+
+// Ajoute le nom pointé en argument à la table des noms de fichiers symboliques d'arduino connectés en USB
+// Retourne le pointeur si succès, Null sinon.
+char* insertInDeviceNamesTable(char* fileName);
 
 /**********************/
 /* Macro              */
@@ -201,7 +207,6 @@ int identifyMicrocontrollerUid(int fdTemp){
     writeCommand(&request, fdTemp);
     readCommand(&response, fdTemp);
     microcontrollerUid = response.Argument[0];
-    microcontrollerFileDescriptorsTable[microcontrollerUid] = fdTemp;
     if (TRACE) printf("Microcontroller UID [%1u]\n",microcontrollerUid);
 
     return microcontrollerUid;
@@ -275,21 +280,9 @@ void printMicrocontrollerUidToFilenameLookupTable(){
     printf("\n");
 }
 
-int addDeviceFromFile(char* fileName){
-    int strlenRepertory = strlen(targetRepertory);
-    int fd;
-    int microcontrollerUid;
-    int i;
-    int availableSlot;
-    
-    if ((strlen(fileName)+strlenRepertory)>=SIZE_MAX_FILE_NAME){
-	if(TRACE) printf("\t\t[ERR] Error: [%s] is too long for SIZE_MAX_FILE_NAME[%d].\n",fileName,SIZE_MAX_FILE_NAME);
-	return -1;
-    }
-
-    // TODO Verifier si deja present ou non
-    availableSlot=-1;
-    i=0;
+int findAvailableSlotInDeviceNamesTable(){
+    int availableSlot=-1;
+    int i=0;
     while (i<NB_MAX_MICROCONTROLLER && availableSlot==-1) {
 	//	printf("devicesNames[%d]=\"%s\"\n",i, devicesNames[i]);
 	if (devicesNames[i][0]==0) {
@@ -300,13 +293,41 @@ int addDeviceFromFile(char* fileName){
 
     if (availableSlot==-1){
 	if(TRACE) printf("\t\t[ERR] Error too much devices already connected (%d).\n",i);
-	return -1;
+    }
+
+    return availableSlot;
+}
+
+char* insertInDeviceNamesTable(char* fileName){
+    int availableSlot;
+
+    if ( (availableSlot = findAvailableSlotInDeviceNamesTable())<0 ){
+	return 0;
     }
     strcpy(devicesNames[availableSlot],targetRepertory);
     strcat(devicesNames[availableSlot],fileName);
-    fd = openSerial(devicesNames[availableSlot]);
+    return devicesNames[availableSlot];
+}
+
+int addDeviceFromFile(char* fileName){
+    int fd;
+    int microcontrollerUid;
+    char* filepath;
+    
+    if ((strlen(fileName)+strlen(targetRepertory))>=SIZE_MAX_FILE_NAME){
+	if(TRACE) printf("\t\t[ERR] Error: [%s] is too long for SIZE_MAX_FILE_NAME[%d].\n",fileName,SIZE_MAX_FILE_NAME);
+	return -1;
+    }
+
+    
+    if ( (filepath=insertInDeviceNamesTable(fileName))<0 ){
+	return -1;
+    }
+
+    fd = openSerial(filepath);
     microcontrollerUid = identifyMicrocontrollerUid(fd);
-    microcontrollerUidFilenameLookupTable[microcontrollerUid]=devicesNames[availableSlot];
+    microcontrollerFileDescriptorsTable[microcontrollerUid] = fd;
+    microcontrollerUidFilenameLookupTable[microcontrollerUid]=filepath;
 
     return 0;    
 }
