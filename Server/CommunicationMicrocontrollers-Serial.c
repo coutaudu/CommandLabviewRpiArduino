@@ -133,17 +133,17 @@ int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid){
 
 int disconnectMicrocontroller(int microcontrollerUid){
     int fd = microcontrollerFileDescriptorsTable[microcontrollerUid];
-    if(close(fd) != 0) {
-	if (DEBUG) printf("[ERR]  %i from close(%d): %s\n", fd, errno, strerror(errno));
-    } else {
+    if (fd !=-1 ) {
+	if(close(fd) != 0) {
+	    if (DEBUG) printf("[ERR]  %i from close(%d): %s\n", fd, errno, strerror(errno));
+	}
 	// Remove from microcontrollerFileDescriptorsTable
 	microcontrollerFileDescriptorsTable[microcontrollerUid] = -1;
+	// Clear devicesNames entry
+	microcontrollerUidFilenameLookupTable[microcontrollerUid][0]='\0';
+	// Remove from microcontrollerUidFilenameLookupTable
+	microcontrollerUidFilenameLookupTable[microcontrollerUid] = NULL;
     }
-    // Clear devicesNames entry
-    microcontrollerUidFilenameLookupTable[microcontrollerUid][0]='\0';
-    // Remove from microcontrollerUidFilenameLookupTable
-    microcontrollerUidFilenameLookupTable[microcontrollerUid] = NULL;
-
     return 0;
 }
 
@@ -153,22 +153,10 @@ int microcontrollerIsAvailable(int microcontrollerUid){
 
 int closeSerials(){
     int i;
-    int fd;
-    int retval = 0;
-    
     for (i=0; i<MAX_MICROCONTROLLER_UID; i++){
-	fd=microcontrollerFileDescriptorsTable[i];
-	if ( fd != -1 ) {
-	    if(close(fd) != 0) {
-		if (DEBUG) printf("[ERR] Error %i from close(%d): %s\n", fd, errno, strerror(errno));
-		retval = -1;
-	    } else {
-		// Manque reset devicesNames
-		microcontrollerFileDescriptorsTable[i] = -1;
-	    }
-	}
+	disconnectMicrocontroller(i);
     }
-    return retval;
+    return 0;
 }
 
 /**************/
