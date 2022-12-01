@@ -62,6 +62,9 @@ int findAvailableSlotInDeviceNamesTable();
 // Retourne le pointeur si succès, Null sinon.
 char* insertInDeviceNamesTable(char* fileName);
 
+// Déconnecte le micro controller et libere les structures.
+int disconnectMicrocontroller(int microcontrollerUid);
+
 /**********************/
 /* Macro              */
 /**********************/
@@ -120,24 +123,29 @@ int sendCommandToMicrocontroller_Serial(command* cmd, int microcontrollerUid){
     if ( n==-1 ) {
 	if( errno==EIO ){
 	    if (TRACE) printf ("\tMicrocontroller[%d]: %s (fd[%d]) has been unplugged.\n",microcontrollerUid,microcontrollerUidFilenameLookupTable[microcontrollerUid],fd) ;
-	    // Close fd
-	    if(close(fd) != 0) {
-		if (TRACE) if (TRACE) printf("[ERR]  %i from close(%d): %s\n", fd, errno, strerror(errno));
-	    } else {
-		// Remove from microcontrollerFileDescriptorsTable
-		microcontrollerFileDescriptorsTable[microcontrollerUid] = -1;
-	    }
-	    // Clear devicesNames entry
-	    microcontrollerUidFilenameLookupTable[microcontrollerUid][0]='\0';
-	    // Remove from microcontrollerUidFilenameLookupTable
-	    microcontrollerUidFilenameLookupTable[microcontrollerUid] = NULL;
+	    disconnectMicrocontroller(microcontrollerUid);// Close fd
 	} 
-	if (DEBUG) if (TRACE) printf("[ERR]  %i from syscall write: %s\n", errno, strerror(errno));
-
+	if (DEBUG) printf("[ERR]  %i from syscall write: %s\n", errno, strerror(errno));
+	
     }
     return n;
 }
 
+int disconnectMicrocontroller(int microcontrollerUid){
+    int fd = microcontrollerFileDescriptorsTable[microcontrollerUid];
+    if(close(fd) != 0) {
+	if (DEBUG) printf("[ERR]  %i from close(%d): %s\n", fd, errno, strerror(errno));
+    } else {
+	// Remove from microcontrollerFileDescriptorsTable
+	microcontrollerFileDescriptorsTable[microcontrollerUid] = -1;
+    }
+    // Clear devicesNames entry
+    microcontrollerUidFilenameLookupTable[microcontrollerUid][0]='\0';
+    // Remove from microcontrollerUidFilenameLookupTable
+    microcontrollerUidFilenameLookupTable[microcontrollerUid] = NULL;
+
+    return 0;
+}
 
 int microcontrollerIsAvailable(int microcontrollerUid){
     return ( microcontrollerFileDescriptorsTable[microcontrollerUid] != -1 );
@@ -152,9 +160,10 @@ int closeSerials(){
 	fd=microcontrollerFileDescriptorsTable[i];
 	if ( fd != -1 ) {
 	    if(close(fd) != 0) {
-		if (TRACE) printf("[ERR] Error %i from close(%d): %s\n", fd, errno, strerror(errno));
+		if (DEBUG) printf("[ERR] Error %i from close(%d): %s\n", fd, errno, strerror(errno));
 		retval = -1;
 	    } else {
+		// Manque reset devicesNames
 		microcontrollerFileDescriptorsTable[i] = -1;
 	    }
 	}
@@ -199,22 +208,23 @@ int openSerial(char* serialFile){
 int identifyMicrocontrollerUid(int fdTemp){
     command request;
     command response;
-    unsigned char microcontrollerUid;
+    int microcontrollerUid;
 
     if (TRACE) printf("\t\t\tIdentifying... ");
     if (TRACE) fflush(stdout);
     request = requestUidCommand();
     writeCommand(&request, fdTemp);
     readCommand(&response, fdTemp);
-    microcontrollerUid = response.Argument[0];
-    if (TRACE) printf("Microcontroller UID [%1u]\n",microcontrollerUid);
+    // TODO vérifier si commande response est valide.
+    microcontrollerUid = (int)(response.Argument[0]);
+    if (TRACE) printf("Microcontroller UID [%1d]\n",microcontrollerUid);
 
     return microcontrollerUid;
 }
 
 int readCommand(command* cmd, int fd){
     int n;
-    if (DEBUG) printf("Start rcv  %lu bytes from fd[%d]:\n", (long unsigned)sizeof(command),fd);
+    if (DEBUG) printf("Start rcv  %u bytes from fd[%d]:\n", sizeof(command),fd);
     n = rio_readn(fd, cmd, sizeof(command));
     if (DEBUG) printf("Rcvd %d bytes:\t\t",n);
     if (DEBUG) printCommand(cmd);
@@ -224,7 +234,7 @@ int readCommand(command* cmd, int fd){
 
 int writeCommand(command* cmd, int fd){
     int n;
-    if (DEBUG) printf("Start send %lu bytes to fd[%d]:\n", (long unsigned)sizeof(command),fd);
+    if (DEBUG) printf("Start send %u bytes to fd[%d]:\n", sizeof(command),fd);
     n = rio_writen(fd, cmd, sizeof(command));
     if (DEBUG) printf("Send %d bytes:\t",n);
     if (DEBUG) printCommand(cmd);
@@ -326,6 +336,10 @@ int addDeviceFromFile(char* fileName){
 
     fd = openSerial(filepath);
     microcontrollerUid = identifyMicrocontrollerUid(fd);
+    if ( microcontrollerFileDescriptorsTable[microcontrollerUid] != -1 ){
+	if(TRACE) printf("\t\t[WAR] Warning: Microcontroller Uid[%d] was already connected: [%s] !\n", microcontrollerUid, microcontrollerUidFilenameLookupTable[microcontrollerUid]);
+	
+    }
     microcontrollerFileDescriptorsTable[microcontrollerUid] = fd;
     microcontrollerUidFilenameLookupTable[microcontrollerUid]=filepath;
 
